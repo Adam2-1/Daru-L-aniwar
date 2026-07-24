@@ -1,0 +1,6 @@
+{
+  "name": "DARU L AN'WAR WAL IS'AD",
+  "description": "Modern, luxurious website for Daru L An'war Wal Is'ad Islamic Educational Institution featuring day and boarding admissions, academic programmes, facilities, and student life.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
