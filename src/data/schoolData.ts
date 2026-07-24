@@ -9,7 +9,7 @@ export const INSTITUTION_INFO = {
   arabicTitle: "دار الأنوار والإسعاد",
   motto: "Nurturing Future Leaders Through Islamic Knowledge, Academic Excellence, and Noble Character",
   foundedYear: 2001,
-  logo: "https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&q=80&w=200",
+  logo: "https://i.imgur.com/lbnwjdu.png",
   address: "1, Sheik Yusuf Olodan Street, off Shoremekun Str, Liasu Road, Idimu, Lagos, Nigeria",
   phonePrimary: "+234 812 491 1289",
   phoneSecondary: "+234 803 123 4567",
@@ -43,7 +43,7 @@ export const VISION_MISSION_VALUES = {
     name: "Sheik Yusuf Olodan",
     role: "Proprietor & Mudeer (Director of Studies)",
     quote: "At Daru L An'war Wal Is'ad, we treat every child as a sacred trust (Amanah). Our integrated approach ensures that our students memorize the Glorious Qur'an with Tajweed while mastering Mathematics, Sciences, and Modern Technology.",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400"
+    avatar: "https://i.imgur.com/W2Gy9tv.jpg"
   }
 };
 
@@ -230,7 +230,7 @@ export const GALLERY_ITEMS: GalleryItem[] = [
     id: "gal-1",
     title: "Annual Qur'an Graduation Ceremony",
     category: "Graduation",
-    image: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=800",
+    image: "https://i.imgur.com/xqMmVj1.jpg",
     caption: "Students receiving their Tajweed Ijazah certificates before parents and scholars.",
     date: "June 2026"
   },
@@ -264,7 +264,7 @@ export const TESTIMONIALS: Testimonial[] = [
     id: "t1",
     name: "Alhaji Qomorudeen Onilenla",
     role: "Parent",
-    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=400",
+    avatar: "https://i.imgur.com/pBx1g4I.jpg",
     rating: 5,
     quote: "Enrolling my two sons in the Boarding Thanawiyyah programme is the best decision I ever made. At 14, my eldest son completed his Qur'an memorization with flawless Tajweed, while scoring top grades in his mock WAEC exams!",
     program: "Boarding Thanawiyyah Parent"

@@ -205,7 +205,7 @@ const DEFAULT_GALLERY_SEED = [
   {
     title: "Annual Qur'an Graduation Ceremony",
     category: "Graduation",
-    image: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=800",
+    image: "https://i.imgur.com/xqMmVj1.jpg",
     caption: "Students receiving their Tajweed Ijazah certificates before parents and scholars.",
     date: "June 2026"
   },
