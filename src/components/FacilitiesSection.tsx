@@ -62,6 +62,9 @@ export const FacilitiesSection: React.FC = () => {
                   alt={fac.title}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&q=80&w=800';
+                  }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0B1F3A]/80 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
                 <span className="absolute top-4 left-4 bg-[#0B1F3A]/90 backdrop-blur-md text-[#D4AF37] font-bold text-[10px] px-3 py-1 rounded-full border border-[#D4AF37]/30 uppercase tracking-wider">
@@ -110,6 +113,9 @@ export const FacilitiesSection: React.FC = () => {
                   alt={selectedFacility.title}
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&q=80&w=800';
+                  }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0B1F3A] via-transparent to-transparent" />
                 <div className="absolute bottom-4 left-6 right-6 text-white">

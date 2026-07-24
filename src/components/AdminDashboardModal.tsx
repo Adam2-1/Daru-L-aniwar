@@ -466,6 +466,9 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                 alt={`${INSTITUTION_INFO.name} Logo`}
                 className="w-full h-full object-contain"
                 referrerPolicy="no-referrer"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&q=80&w=200';
+                }}
               />
             </div>
             <div>

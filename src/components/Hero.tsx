@@ -16,6 +16,9 @@ export const Hero: React.FC<HeroProps> = ({ onOpenApplyModal }) => {
           alt="Daru L An'war Mosque and Campus"
           className="w-full h-full object-cover object-center scale-105 animate-pulse-slow filter brightness-90"
           referrerPolicy="no-referrer"
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&q=80&w=1200';
+          }}
         />
         {/* Navy Gradient Overlay for high contrast */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#0B1F3A]/95 via-[#0B1F3A]/80 to-[#071326]/95" />

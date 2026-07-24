@@ -38,6 +38,9 @@ export const AboutSection: React.FC = () => {
                   alt="Daru L An'war Campus Building"
                   className="w-full h-80 sm:h-96 object-cover hover:scale-105 transition-transform duration-500"
                   referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&q=80&w=800';
+                  }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0B1F3A]/80 via-transparent to-transparent" />
                 <div className="absolute bottom-4 left-6 right-6 text-white">
@@ -64,6 +67,9 @@ export const AboutSection: React.FC = () => {
                   alt="Quran memorization session"
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1609599006353-e629aaabfeae?auto=format&fit=crop&q=80&w=400';
+                  }}
                 />
               </div>
             </div>
@@ -142,6 +148,9 @@ export const AboutSection: React.FC = () => {
                     alt={VISION_MISSION_VALUES.mudeerWelcome.name}
                     className="w-full h-full object-cover object-center transform group-hover:scale-105 transition-transform duration-500"
                     referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400';
+                    }}
                   />
                 </div>
               </div>

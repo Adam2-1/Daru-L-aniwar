@@ -165,7 +165,7 @@ const DEFAULT_NEWS_SEED = [
     category: "Admissions",
     author: "Registry Office",
     readTime: "3 min read",
-    image: "/src/assets/images/school_campus_facade_1784759093491.jpg",
+    image: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&q=80&w=800",
     excerpt: "Daru L An'war Wal Is'ad hereby invites applications from qualified candidates for admission into Ibtidaa'iyyah, Ihdaadiyyah, and Thanawiyyah sections.",
     content: [
       "We are delighted to announce that admission applications for the upcoming 2026/2027 academic session are now officially open for Day and Boarding options.",
@@ -179,7 +179,7 @@ const DEFAULT_NEWS_SEED = [
     category: "Achievement",
     author: "Editorial Team",
     readTime: "4 min read",
-    image: "/src/assets/images/quran_memorization_class_1784759104918.jpg",
+    image: "https://images.unsplash.com/photo-1609599006353-e629aaabfeae?auto=format&fit=crop&q=80&w=800",
     excerpt: "Our Thanawiyyah representatives clinched the gold medal in both 30-Juz Tajweed recitation and Senior Mathematics Quiz competition.",
     content: [
       "Alhamdulillah! Our delegates represented the institution at the National Islamic & STEM Olympiad in Abuja, emerging overall champions.",
@@ -205,7 +205,7 @@ const DEFAULT_GALLERY_SEED = [
   {
     title: "Annual Qur'an Graduation Ceremony",
     category: "Graduation",
-    image: "https://i.imgur.com/xqMmVj1.jpg",
+    image: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=800",
     caption: "Students receiving their Tajweed Ijazah certificates before parents and scholars.",
     date: "June 2026"
   },

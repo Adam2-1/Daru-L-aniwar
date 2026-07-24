@@ -78,6 +78,9 @@ export const StudentLifeGallery: React.FC = () => {
                   alt={item.title}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&q=80&w=800';
+                  }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0B1F3A]/90 via-[#0B1F3A]/30 to-transparent opacity-70 group-hover:opacity-90 transition-opacity" />
 
@@ -125,6 +128,9 @@ export const StudentLifeGallery: React.FC = () => {
                   alt={activeImage.title}
                   className="w-full h-full object-contain max-h-[70vh] mx-auto bg-black"
                   referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&q=80&w=800';
+                  }}
                 />
               </div>
 

@@ -1,4 +1,7 @@
 import { AcademicProgramme, Facility, GalleryItem, NewsArticle, Testimonial, FeaturePoint, FAQItem } from '../types';
+import heroMosqueImg from '../assets/images/hero_islamic_mosque_1784759078607.jpg';
+import campusFacadeImg from '../assets/images/school_campus_facade_1784759093491.jpg';
+import quranClassImg from '../assets/images/quran_memorization_class_1784759104918.jpg';
 
 export const INSTITUTION_INFO = {
   name: "DARU L AN'WAR WAL IS'AD",
@@ -6,7 +9,7 @@ export const INSTITUTION_INFO = {
   arabicTitle: "دار الأنوار والإسعاد",
   motto: "Nurturing Future Leaders Through Islamic Knowledge, Academic Excellence, and Noble Character",
   foundedYear: 2001,
-  logo: "https://i.imgur.com/lbnwjdu.png",
+  logo: "https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&q=80&w=200",
   address: "1, Sheik Yusuf Olodan Street, off Shoremekun Str, Liasu Road, Idimu, Lagos, Nigeria",
   phonePrimary: "+234 812 491 1289",
   phoneSecondary: "+234 803 123 4567",
@@ -22,9 +25,9 @@ export const INSTITUTION_INFO = {
 };
 
 export const HERO_DATA = {
-  heroImage: "/src/assets/images/hero_islamic_mosque_1784759078607.jpg",
-  campusImage: "/src/assets/images/school_campus_facade_1784759093491.jpg",
-  quranClassImage: "/src/assets/images/quran_memorization_class_1784759104918.jpg",
+  heroImage: heroMosqueImg,
+  campusImage: campusFacadeImg,
+  quranClassImage: quranClassImg,
 };
 
 export const VISION_MISSION_VALUES = {
@@ -40,7 +43,7 @@ export const VISION_MISSION_VALUES = {
     name: "Sheik Yusuf Olodan",
     role: "Proprietor & Mudeer (Director of Studies)",
     quote: "At Daru L An'war Wal Is'ad, we treat every child as a sacred trust (Amanah). Our integrated approach ensures that our students memorize the Glorious Qur'an with Tajweed while mastering Mathematics, Sciences, and Modern Technology.",
-    avatar: "https://i.imgur.com/W2Gy9tv.jpg"
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400"
   }
 };
 
@@ -227,7 +230,7 @@ export const GALLERY_ITEMS: GalleryItem[] = [
     id: "gal-1",
     title: "Annual Qur'an Graduation Ceremony",
     category: "Graduation",
-    image: "https://i.imgur.com/xqMmVj1.jpg",
+    image: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=800",
     caption: "Students receiving their Tajweed Ijazah certificates before parents and scholars.",
     date: "June 2026"
   },
@@ -261,7 +264,7 @@ export const TESTIMONIALS: Testimonial[] = [
     id: "t1",
     name: "Alhaji Qomorudeen Onilenla",
     role: "Parent",
-    avatar: "https://i.imgur.com/pBx1g4I.jpg",
+    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=400",
     rating: 5,
     quote: "Enrolling my two sons in the Boarding Thanawiyyah programme is the best decision I ever made. At 14, my eldest son completed his Qur'an memorization with flawless Tajweed, while scoring top grades in his mock WAEC exams!",
     program: "Boarding Thanawiyyah Parent"
@@ -276,7 +279,7 @@ export const LATEST_NEWS: NewsArticle[] = [
     category: "Admissions",
     author: "Registry Office",
     readTime: "3 min read",
-    image: "/src/assets/images/school_campus_facade_1784759093491.jpg",
+    image: campusFacadeImg,
     excerpt: "Daru L An'war Wal Is'ad hereby invites applications from qualified candidates for admission into Ibtidaa'iyyah, Ihdaadiyyah, and Thanawiyyah sections.",
     content: [
       "We are delighted to announce that admission applications for the upcoming 2026/2027 academic session are now officially open for Day and Boarding options.",
@@ -291,7 +294,7 @@ export const LATEST_NEWS: NewsArticle[] = [
     category: "Achievement",
     author: "Editorial Team",
     readTime: "4 min read",
-    image: "/src/assets/images/quran_memorization_class_1784759104918.jpg",
+    image: quranClassImg,
     excerpt: "Our Thanawiyyah representatives clinched the gold medal in both 30-Juz Tajweed recitation and Senior Mathematics Quiz competition.",
     content: [
       "Alhamdulillah! Our delegates represented the institution at the National Islamic & STEM Olympiad in Abuja, emerging overall champions.",

@@ -46,6 +46,9 @@ export const TestimonialsSection: React.FC = () => {
                   alt={current.name}
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=400';
+                  }}
                 />
               </div>
               <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#0B1F3A] text-[#D4AF37] font-bold text-[10px] px-3 py-1 rounded-full border border-[#D4AF37]/40 uppercase tracking-wider whitespace-nowrap shadow">

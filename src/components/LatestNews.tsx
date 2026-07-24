@@ -53,6 +53,9 @@ export const LatestNews: React.FC = () => {
                     alt={article.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&q=80&w=800';
+                    }}
                   />
                   <div className="absolute top-4 left-4 bg-[#0B1F3A] text-[#D4AF37] font-bold text-[10px] px-3 py-1 rounded-full border border-[#D4AF37]/30 uppercase tracking-wider">
                     {article.category}
@@ -113,6 +116,9 @@ export const LatestNews: React.FC = () => {
                   alt={selectedArticle.title}
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = 'https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&q=80&w=800';
+                  }}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0B1F3A] via-transparent to-transparent" />
                 <div className="absolute bottom-4 left-6 right-6 text-white">
