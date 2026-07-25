@@ -13,7 +13,11 @@ const PORT = 3000;
 const JWT_SECRET = process.env.JWT_SECRET || "default_dev_jwt_secret_change_in_production";
 const MONGODB_URI = process.env.MONGODB_URI || "";
 
-// MongoDB Mongoose Schemas & Interfaces
+// ==========================================
+// MongoDB Mongoose Schemas & Models
+// ==========================================
+
+// 1. User Schema
 interface IUser extends Document {
   fullName: string;
   email: string;
@@ -25,7 +29,7 @@ interface IUser extends Document {
 
 const UserSchema: Schema = new Schema({
   fullName: { type: String, required: true },
-  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true, index: true },
   passwordHash: { type: String, required: true },
   phone: { type: String },
   role: { type: String, enum: ['applicant', 'parent', 'student', 'admin'], default: 'applicant' },
@@ -34,6 +38,7 @@ const UserSchema: Schema = new Schema({
 
 const UserModel = mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
 
+// 2. Application Schema
 interface IApplication extends Document {
   userId?: string;
   applicationNo: string;
@@ -57,8 +62,8 @@ interface IApplication extends Document {
 }
 
 const ApplicationSchema: Schema = new Schema({
-  userId: { type: String },
-  applicationNo: { type: String },
+  userId: { type: String, index: true },
+  applicationNo: { type: String, required: true, unique: true },
   fullName: { type: String, required: true },
   dateOfBirth: { type: String, required: true },
   gender: { type: String, required: true },
@@ -67,7 +72,7 @@ const ApplicationSchema: Schema = new Schema({
   entryGrade: { type: String, required: true },
   parentName: { type: String, required: true },
   parentPhone: { type: String, required: true },
-  parentEmail: { type: String, required: true },
+  parentEmail: { type: String, required: true, index: true },
   address: { type: String, required: true },
   previousSchool: { type: String },
   quranMemorizedJuz: { type: String },
@@ -75,11 +80,12 @@ const ApplicationSchema: Schema = new Schema({
   passportPhotoUrl: { type: String },
   uploadedDocuments: [{ type: String }],
   status: { type: String, enum: ['pending', 'under_review', 'accepted', 'rejected'], default: 'pending' },
-  submittedAt: { type: Date, default: Date.now }
+  submittedAt: { type: Date, default: Date.now, index: true }
 });
 
 const ApplicationModel = mongoose.models.Application || mongoose.model<IApplication>("Application", ApplicationSchema);
 
+// 3. Contact Schema
 interface IContact extends Document {
   name: string;
   email: string;
@@ -97,12 +103,12 @@ const ContactSchema: Schema = new Schema({
   subject: { type: String, required: true },
   message: { type: String, required: true },
   status: { type: String, enum: ['unread', 'read', 'responded'], default: 'unread' },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now, index: true }
 });
 
 const ContactModel = mongoose.models.Contact || mongoose.model<IContact>("Contact", ContactSchema);
 
-// News / Article Schema
+// 4. News / Article Schema
 interface INewsArticle extends Document {
   title: string;
   date: string;
@@ -124,12 +130,12 @@ const NewsArticleSchema: Schema = new Schema({
   image: { type: String, required: true },
   excerpt: { type: String, required: true },
   content: [{ type: String }],
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now, index: true }
 });
 
 const NewsArticleModel = mongoose.models.NewsArticle || mongoose.model<INewsArticle>("NewsArticle", NewsArticleSchema);
 
-// Gallery Item Schema
+// 5. Gallery Item Schema
 interface IGalleryItem extends Document {
   title: string;
   category: string;
@@ -145,20 +151,16 @@ const GalleryItemSchema: Schema = new Schema({
   image: { type: String, required: true },
   caption: { type: String, required: true },
   date: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now, index: true }
 });
 
 const GalleryItemModel = mongoose.models.GalleryItem || mongoose.model<IGalleryItem>("GalleryItem", GalleryItemSchema);
 
-// In-Memory Storage Fallback if MongoDB is not connected
+// Connection state tracking
 let isMongoConnected = false;
 let mongoErrorMessage = "";
 
-const inMemoryUsers: any[] = [];
-const inMemoryApplications: any[] = [];
-const inMemoryContacts: any[] = [];
-
-// Seed default news articles for fallback/seed
+// Default Seeds for Initial Database Provisioning
 const DEFAULT_NEWS_SEED = [
   {
     title: "Admissions Open for 2026/2027 Academic Session",
@@ -226,14 +228,30 @@ const DEFAULT_GALLERY_SEED = [
   }
 ];
 
-const inMemoryNews: any[] = DEFAULT_NEWS_SEED.map((item, idx) => ({ ...item, id: `news_seed_${idx + 1}` }));
-const inMemoryGallery: any[] = DEFAULT_GALLERY_SEED.map((item, idx) => ({ ...item, id: `gal_seed_${idx + 1}` }));
+// Setup Mongoose Event Listeners
+mongoose.connection.on('connected', () => {
+  isMongoConnected = true;
+  mongoErrorMessage = '';
+  console.log("✅ Mongoose connected to MongoDB Atlas database 'darulanwar_db'");
+});
 
-// Initialize MongoDB Connection
+mongoose.connection.on('error', (err) => {
+  isMongoConnected = false;
+  mongoErrorMessage = err?.message || 'MongoDB connection error';
+  console.error("❌ Mongoose MongoDB connection error:", mongoErrorMessage);
+});
+
+mongoose.connection.on('disconnected', () => {
+  isMongoConnected = false;
+  mongoErrorMessage = 'MongoDB connection disconnected';
+  console.warn("⚠️ Mongoose MongoDB connection disconnected");
+});
+
+// Initialize MongoDB Connection & Collections
 async function connectToMongo() {
   if (!MONGODB_URI) {
-    console.log("ℹ️ MONGODB_URI not set. Running with In-Memory Storage mode.");
-    mongoErrorMessage = "MONGODB_URI environment variable is not configured. Using local session database.";
+    console.warn("⚠️ MONGODB_URI environment variable is not configured.");
+    mongoErrorMessage = "MONGODB_URI environment variable is not set in environment settings.";
     return;
   }
 
@@ -246,13 +264,11 @@ async function connectToMongo() {
     isMongoConnected = true;
     console.log("✅ Successfully connected to MongoDB Database: darulanwar_db!");
 
-    // Seed default admin & sample application if empty so collections & database appear in MongoDB Atlas UI immediately
     await initializeDatabase();
   } catch (err: any) {
     isMongoConnected = false;
     mongoErrorMessage = err?.message || "Failed to connect to MongoDB instance.";
-    console.warn("⚠️ MongoDB connection warning:", mongoErrorMessage);
-    console.log("ℹ️ Fallback: Running with In-Memory Storage mode.");
+    console.error("❌ MongoDB connection failed:", mongoErrorMessage);
   }
 }
 
@@ -269,7 +285,7 @@ async function initializeDatabase() {
         phone: "+2348000000000",
         role: "admin",
       });
-      console.log("🌱 Created default admin user in MongoDB Atlas: admin@darulanwar.edu.ng");
+      console.log("🌱 Provisioned default admin user in MongoDB: admin@darulanwar.edu.ng");
     }
 
     // 2. Ensure initial seed application if empty
@@ -290,24 +306,24 @@ async function initializeDatabase() {
         status: "under_review",
         submittedAt: new Date(),
       });
-      console.log("🌱 Created sample application in MongoDB Atlas.");
+      console.log("🌱 Provisioned sample application in MongoDB.");
     }
 
     // 3. Ensure initial seed news articles if empty
     const newsCount = await (NewsArticleModel as any).countDocuments();
     if (newsCount === 0) {
       await (NewsArticleModel as any).insertMany(DEFAULT_NEWS_SEED);
-      console.log("🌱 Seeded default news articles in MongoDB Atlas.");
+      console.log("🌱 Provisioned default news articles in MongoDB.");
     }
 
     // 4. Ensure initial seed gallery items if empty
     const galleryCount = await (GalleryItemModel as any).countDocuments();
     if (galleryCount === 0) {
       await (GalleryItemModel as any).insertMany(DEFAULT_GALLERY_SEED);
-      console.log("🌱 Seeded default gallery items in MongoDB Atlas.");
+      console.log("🌱 Provisioned default gallery items in MongoDB.");
     }
   } catch (err) {
-    console.error("Error during DB initialization/seeding:", err);
+    console.error("Error during MongoDB initialization/seeding:", err);
   }
 }
 
@@ -337,12 +353,12 @@ function authenticateToken(req: AuthRequest, res: Response, next: NextFunction) 
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    return res.status(401).json({ error: "Access token required" });
+    return res.status(401).json({ success: false, message: "Access token required", error: "Unauthorized" });
   }
 
   jwt.verify(token, JWT_SECRET, (err: any, decoded: any) => {
     if (err) {
-      return res.status(403).json({ error: "Invalid or expired token" });
+      return res.status(403).json({ success: false, message: "Invalid or expired token", error: "Forbidden" });
     }
     req.user = decoded;
     next();
@@ -365,10 +381,22 @@ function optionalAuthToken(req: AuthRequest, res: Response, next: NextFunction) 
   }
 }
 
+// Require Active MongoDB Connection Middleware
+function requireMongoDb(req: Request, res: Response, next: NextFunction) {
+  if (!isMongoConnected) {
+    return res.status(503).json({
+      success: false,
+      message: "Database unavailable",
+      error: `MongoDB connection is currently offline: ${mongoErrorMessage || "MONGODB_URI is not connected or reachable."}`
+    });
+  }
+  next();
+}
+
 async function startServer() {
   const app = express();
 
-  // Enable CORS & Preflight OPTIONS for mobile devices, cross-origin webviews, and proxies
+  // Enable CORS & Preflight OPTIONS
   app.use(cors({
     origin: true,
     credentials: true,
@@ -389,25 +417,29 @@ async function startServer() {
         const usersCount = await (UserModel as any).countDocuments();
         const appsCount = await (ApplicationModel as any).countDocuments();
         const contactsCount = await (ContactModel as any).countDocuments();
+        const newsCount = await (NewsArticleModel as any).countDocuments();
+        const galleryCount = await (GalleryItemModel as any).countDocuments();
         stats = {
           databaseName: 'darulanwar_db',
           collections: {
             users: usersCount,
             applications: appsCount,
             contacts: contactsCount,
+            news: newsCount,
+            gallery: galleryCount,
           }
         };
       } catch (err: any) {
-        console.error("Error fetching stats:", err);
+        console.error("Error fetching MongoDB stats:", err);
       }
     }
 
     res.json({
       connected: isMongoConnected,
-      type: isMongoConnected ? "mongodb" : "memory",
+      type: isMongoConnected ? "mongodb" : "offline",
       message: isMongoConnected
         ? "Connected to MongoDB Cluster ('darulanwar_db')"
-        : (mongoErrorMessage || "Operating in local memory mode"),
+        : (mongoErrorMessage || "MongoDB database is offline"),
       stats,
       mongoErrorMessage: isMongoConnected ? null : mongoErrorMessage
     });
@@ -419,7 +451,7 @@ async function startServer() {
     return res.status(400).json({ success: false, message: "Registration requires a POST request with account details." });
   });
 
-  app.post(["/api/auth/register", "/api/auth/register/"], async (req, res) => {
+  app.post(["/api/auth/register", "/api/auth/register/"], requireMongoDb, async (req, res) => {
     try {
       let body = req.body || {};
       if (typeof body === 'string') {
@@ -432,85 +464,41 @@ async function startServer() {
       const role = body.role;
 
       if (!fullName || !email || !password) {
-        return res.status(400).json({ error: "Name, email, and password are required" });
+        return res.status(400).json({ success: false, message: "Name, email, and password are required", error: "Missing required fields" });
       }
 
       if (String(password).length < 6) {
-        return res.status(400).json({ error: "Password must be at least 6 characters" });
+        return res.status(400).json({ success: false, message: "Password must be at least 6 characters long", error: "Password too short" });
       }
 
       const normalizedEmail = String(email).toLowerCase().trim();
       const passwordHash = await bcrypt.hash(String(password), 10);
 
-      if (isMongoConnected) {
-        try {
-          const existingUser = await (UserModel as any).findOne({ email: normalizedEmail });
-          if (existingUser) {
-            return res.status(400).json({ error: "An account with this email address already exists. Please log in instead." });
-          }
-
-          const newUser = await UserModel.create({
-            fullName,
-            email: normalizedEmail,
-            passwordHash,
-            phone,
-            role: role || 'applicant',
-          });
-
-          const token = generateToken({
-            id: newUser._id.toString(),
-            email: newUser.email,
-            fullName: newUser.fullName,
-            role: newUser.role,
-          });
-
-          return res.status(201).json({
-            token,
-            user: {
-              id: newUser._id.toString(),
-              fullName: newUser.fullName,
-              email: newUser.email,
-              phone: newUser.phone,
-              role: newUser.role,
-              createdAt: newUser.createdAt,
-            },
-          });
-        } catch (dbErr) {
-          console.warn("MongoDB Register error, falling back to memory:", dbErr);
-        }
-      }
-
-      // In-Memory Fallback
-      const existingUser = inMemoryUsers.find(u => u.email === normalizedEmail);
+      const existingUser = await (UserModel as any).findOne({ email: normalizedEmail });
       if (existingUser) {
-        return res.status(400).json({ error: "An account with this email address already exists. Please log in instead." });
+        return res.status(400).json({ success: false, message: "An account with this email address already exists. Please log in instead.", error: "Email exists" });
       }
 
-      const id = "mem_usr_" + Date.now() + "_" + Math.random().toString(36).substr(2, 4);
-      const newUser = {
-        id,
-        _id: id,
+      const newUser = await UserModel.create({
         fullName,
         email: normalizedEmail,
         passwordHash,
         phone,
         role: role || 'applicant',
-        createdAt: new Date(),
-      };
-
-      inMemoryUsers.push(newUser);
+      });
 
       const token = generateToken({
-        id: newUser.id,
+        id: newUser._id.toString(),
         email: newUser.email,
         fullName: newUser.fullName,
         role: newUser.role,
       });
 
       return res.status(201).json({
+        success: true,
         token,
         user: {
-          id: newUser.id,
+          id: newUser._id.toString(),
           fullName: newUser.fullName,
           email: newUser.email,
           phone: newUser.phone,
@@ -520,7 +508,7 @@ async function startServer() {
       });
     } catch (error: any) {
       console.error("Register Error:", error);
-      res.status(500).json({ error: error.message || "Failed to register user" });
+      res.status(500).json({ success: false, message: "Failed to register user in MongoDB", error: error.message });
     }
   });
 
@@ -530,7 +518,7 @@ async function startServer() {
     return res.status(400).json({ success: false, message: "Login requires a POST request with email and password." });
   });
 
-  app.post(["/api/auth/login", "/api/auth/login/"], async (req, res) => {
+  app.post(["/api/auth/login", "/api/auth/login/"], requireMongoDb, async (req, res) => {
     try {
       let body = req.body || {};
       if (typeof body === 'string') {
@@ -540,68 +528,33 @@ async function startServer() {
       const password = body.password;
 
       if (!email || !password) {
-        return res.status(400).json({ error: "Email and password are required" });
+        return res.status(400).json({ success: false, message: "Email and password are required", error: "Missing fields" });
       }
 
       const normalizedEmail = String(email).toLowerCase().trim();
 
-      if (isMongoConnected) {
-        try {
-          const user = await (UserModel as any).findOne({ email: normalizedEmail });
-          if (user) {
-            const isMatch = await bcrypt.compare(String(password), user.passwordHash);
-            if (isMatch) {
-              const token = generateToken({
-                id: user._id.toString(),
-                email: user.email,
-                fullName: user.fullName,
-                role: user.role,
-              });
-
-              return res.json({
-                token,
-                user: {
-                  id: user._id.toString(),
-                  fullName: user.fullName,
-                  email: user.email,
-                  phone: user.phone,
-                  role: user.role,
-                  createdAt: user.createdAt,
-                },
-              });
-            } else {
-              return res.status(401).json({ error: "Incorrect password. Please try again." });
-            }
-          } else {
-            return res.status(401).json({ error: "No account found with this email address. Please register first." });
-          }
-        } catch (dbErr) {
-          console.warn("MongoDB Login error, falling back to memory:", dbErr);
-        }
-      }
-
-      // In-Memory Fallback
-      const user = inMemoryUsers.find(u => u.email === normalizedEmail);
+      const user = await (UserModel as any).findOne({ email: normalizedEmail });
       if (!user) {
-        return res.status(401).json({ error: "No account found with this email address. Please register first." });
+        return res.status(401).json({ success: false, message: "No account found with this email address. Please register first.", error: "User not found" });
       }
 
       const isMatch = await bcrypt.compare(String(password), user.passwordHash);
       if (!isMatch) {
-        return res.status(401).json({ error: "Incorrect password. Please try again." });
+        return res.status(401).json({ success: false, message: "Incorrect password. Please try again.", error: "Invalid password" });
       }
 
       const token = generateToken({
-        id: user.id,
+        id: user._id.toString(),
         email: user.email,
         fullName: user.fullName,
         role: user.role,
       });
 
       return res.json({
+        success: true,
         token,
         user: {
-          id: user.id,
+          id: user._id.toString(),
           fullName: user.fullName,
           email: user.email,
           phone: user.phone,
@@ -611,52 +564,39 @@ async function startServer() {
       });
     } catch (error: any) {
       console.error("Login Error:", error);
-      res.status(500).json({ error: error.message || "Failed to log in" });
+      res.status(500).json({ success: false, message: "Failed to log in", error: error.message });
     }
   });
 
   // 4. Auth: Get Current User Profile
-  app.get(["/api/auth/me", "/api/auth/me/"], authenticateToken, async (req: AuthRequest, res: Response) => {
+  app.get(["/api/auth/me", "/api/auth/me/"], requireMongoDb, authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
-      if (!req.user) return res.status(401).json({ error: "Unauthenticated" });
+      if (!req.user) return res.status(401).json({ success: false, message: "Unauthenticated", error: "Unauthorized" });
 
-      if (isMongoConnected) {
-        const user = await (UserModel as any).findById(req.user.id).select("-passwordHash");
-        if (!user) return res.status(404).json({ error: "User not found" });
+      const user = await (UserModel as any).findById(req.user.id).select("-passwordHash");
+      if (!user) return res.status(404).json({ success: false, message: "User profile not found in database", error: "User not found" });
 
-        return res.json({
-          id: user._id.toString(),
-          fullName: user.fullName,
-          email: user.email,
-          phone: user.phone,
-          role: user.role,
-          createdAt: user.createdAt,
-        });
-      } else {
-        const user = inMemoryUsers.find(u => u.id === req.user?.id);
-        if (!user) return res.status(404).json({ error: "User not found" });
-
-        return res.json({
-          id: user.id,
-          fullName: user.fullName,
-          email: user.email,
-          phone: user.phone,
-          role: user.role,
-          createdAt: user.createdAt,
-        });
-      }
+      return res.json({
+        success: true,
+        id: user._id.toString(),
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        createdAt: user.createdAt,
+      });
     } catch (error: any) {
-      res.status(500).json({ error: "Failed to fetch user profile" });
+      res.status(500).json({ success: false, message: "Failed to fetch user profile", error: error.message });
     }
   });
 
   // 5. Applications: Submit Admission Application
-  app.post(["/api/applications", "/api/applications/"], optionalAuthToken, async (req: AuthRequest, res: Response) => {
+  app.post(["/api/applications", "/api/applications/"], requireMongoDb, optionalAuthToken, async (req: AuthRequest, res: Response) => {
     try {
       const data = req.body;
 
       if (!data.fullName || !data.parentName || !data.parentPhone || !data.parentEmail || !data.programme) {
-        return res.status(400).json({ error: "Missing required application fields" });
+        return res.status(400).json({ success: false, message: "Missing required application fields", error: "Incomplete application" });
       }
 
       const generatedAppNo = data.applicationNo || ("DAI-2026-" + Math.floor(1000 + Math.random() * 9000));
@@ -683,94 +623,62 @@ async function startServer() {
         submittedAt: new Date(),
       };
 
-      if (isMongoConnected) {
-        const savedApp = await ApplicationModel.create(applicationDoc);
-        return res.status(201).json({
-          success: true,
-          message: "Application successfully recorded in MongoDB!",
-          application: {
-            ...savedApp.toObject(),
-            id: savedApp._id.toString(),
-          },
-        });
-      } else {
-        const id = "app_" + Date.now() + "_" + Math.random().toString(36).substr(2, 4);
-        const savedApp = {
-          ...applicationDoc,
-          _id: id,
-          id: id,
-        };
-        inMemoryApplications.push(savedApp);
-
-        return res.status(201).json({
-          success: true,
-          message: "Application recorded in database session!",
-          application: savedApp,
-        });
-      }
+      const savedApp = await ApplicationModel.create(applicationDoc);
+      return res.status(201).json({
+        success: true,
+        message: "Application successfully recorded in MongoDB!",
+        application: {
+          ...savedApp.toObject(),
+          id: savedApp._id.toString(),
+        },
+      });
     } catch (error: any) {
       console.error("Application Submit Error:", error);
-      res.status(500).json({ error: error.message || "Failed to submit application" });
+      res.status(500).json({ success: false, message: "Failed to submit application to MongoDB", error: error.message });
     }
   });
 
   // 6. Applications: Get User Applications or All Applications
-  app.get(["/api/applications", "/api/applications/"], optionalAuthToken, async (req: AuthRequest, res: Response) => {
+  app.get(["/api/applications", "/api/applications/"], requireMongoDb, optionalAuthToken, async (req: AuthRequest, res: Response) => {
     try {
       const emailQuery = req.query.email as string;
 
-      if (isMongoConnected) {
-        let filter: any = {};
-        if (req.user) {
-          filter = { $or: [{ userId: req.user.id }, { parentEmail: req.user.email.toLowerCase() }] };
-        } else if (emailQuery) {
-          filter = { parentEmail: emailQuery.toLowerCase() };
-        }
-
-        const apps = await ApplicationModel.find(filter).sort({ submittedAt: -1 });
-        return res.json(apps.map(app => ({
-          ...app.toObject(),
-          id: app._id.toString(),
-        })));
-      } else {
-        let apps = inMemoryApplications;
-        if (req.user) {
-          apps = inMemoryApplications.filter(a => a.userId === req.user?.id || a.parentEmail.toLowerCase() === req.user?.email.toLowerCase());
-        } else if (emailQuery) {
-          apps = inMemoryApplications.filter(a => a.parentEmail.toLowerCase() === emailQuery.toLowerCase());
-        }
-        return res.json(apps);
+      let filter: any = {};
+      if (req.user) {
+        filter = { $or: [{ userId: req.user.id }, { parentEmail: req.user.email.toLowerCase() }] };
+      } else if (emailQuery) {
+        filter = { parentEmail: emailQuery.toLowerCase() };
       }
+
+      const apps = await ApplicationModel.find(filter).sort({ submittedAt: -1 });
+      return res.json(apps.map(app => ({
+        ...app.toObject(),
+        id: app._id.toString(),
+      })));
     } catch (error: any) {
-      res.status(500).json({ error: "Failed to fetch applications" });
+      res.status(500).json({ success: false, message: "Failed to fetch applications from MongoDB", error: error.message });
     }
   });
 
   // 7. Contact Messages Endpoint
-  app.post(["/api/contact", "/api/contact/"], async (req, res) => {
+  app.post(["/api/contact", "/api/contact/"], requireMongoDb, async (req, res) => {
     try {
       const { name, email, phone, subject, message } = req.body;
 
       if (!name || !email || !message) {
-        return res.status(400).json({ error: "Name, email, and message are required" });
+        return res.status(400).json({ success: false, message: "Name, email, and message are required", error: "Missing fields" });
       }
 
-      if (isMongoConnected) {
-        const contactDoc = await ContactModel.create({
-          name,
-          email,
-          phone,
-          subject: subject || "General Inquiry",
-          message,
-        });
-        return res.status(201).json({ success: true, id: contactDoc._id.toString() });
-      } else {
-        const id = "cnt_" + Date.now();
-        inMemoryContacts.push({ id, name, email, phone, subject, message, createdAt: new Date() });
-        return res.status(201).json({ success: true, id });
-      }
+      const contactDoc = await ContactModel.create({
+        name,
+        email,
+        phone,
+        subject: subject || "General Inquiry",
+        message,
+      });
+      return res.status(201).json({ success: true, message: "Contact message saved to MongoDB", id: contactDoc._id.toString() });
     } catch (error: any) {
-      res.status(500).json({ error: "Failed to send message" });
+      res.status(500).json({ success: false, message: "Failed to send message to MongoDB", error: error.message });
     }
   });
 
@@ -806,120 +714,90 @@ async function startServer() {
           }
         });
       } else {
-        return res.status(401).json({ error: "Invalid Admin Credentials or Passcode" });
+        return res.status(401).json({ success: false, message: "Invalid Admin Credentials or Passcode", error: "Unauthorized" });
       }
     } catch (err: any) {
-      res.status(500).json({ error: "Admin authentication failed" });
+      res.status(500).json({ success: false, message: "Admin authentication failed", error: err.message });
     }
   });
 
-  app.get(["/api/admin/applications", "/api/admin/applications/"], async (req: Request, res: Response) => {
+  app.get(["/api/admin/applications", "/api/admin/applications/"], requireMongoDb, async (req: Request, res: Response) => {
     try {
-      if (isMongoConnected) {
-        const apps = await (ApplicationModel as any).find({}).sort({ submittedAt: -1 });
-        return res.json(apps.map((app: any) => ({
-          ...app.toObject(),
-          id: app._id.toString(),
-        })));
-      } else {
-        return res.json(inMemoryApplications);
-      }
+      const apps = await (ApplicationModel as any).find({}).sort({ submittedAt: -1 });
+      return res.json(apps.map((app: any) => ({
+        ...app.toObject(),
+        id: app._id.toString(),
+      })));
     } catch (err: any) {
-      res.status(500).json({ error: "Failed to fetch all applications for admin" });
+      res.status(500).json({ success: false, message: "Failed to fetch all applications from MongoDB", error: err.message });
     }
   });
 
-  app.patch(["/api/admin/applications/:id/status", "/api/admin/applications/:id/status/"], async (req: Request, res: Response) => {
+  app.patch(["/api/admin/applications/:id/status", "/api/admin/applications/:id/status/"], requireMongoDb, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { status } = req.body;
 
       if (!['pending', 'under_review', 'accepted', 'rejected'].includes(status)) {
-        return res.status(400).json({ error: "Invalid status value" });
+        return res.status(400).json({ success: false, message: "Invalid status value", error: "Invalid status" });
       }
 
-      if (isMongoConnected) {
-        const updatedApp = await (ApplicationModel as any).findByIdAndUpdate(
-          id,
-          { status },
-          { new: true }
-        );
-        if (!updatedApp) return res.status(404).json({ error: "Application not found" });
+      const updatedApp = await (ApplicationModel as any).findByIdAndUpdate(
+        id,
+        { status },
+        { new: true }
+      );
+      if (!updatedApp) return res.status(404).json({ success: false, message: "Application not found in MongoDB", error: "Not found" });
 
-        return res.json({
-          success: true,
-          application: {
-            ...updatedApp.toObject(),
-            id: updatedApp._id.toString()
-          }
-        });
-      } else {
-        const appIndex = inMemoryApplications.findIndex(a => a.id === id || a._id === id);
-        if (appIndex === -1) return res.status(404).json({ error: "Application not found" });
-
-        inMemoryApplications[appIndex].status = status;
-        return res.json({
-          success: true,
-          application: inMemoryApplications[appIndex]
-        });
-      }
+      return res.json({
+        success: true,
+        application: {
+          ...updatedApp.toObject(),
+          id: updatedApp._id.toString()
+        }
+      });
     } catch (err: any) {
-      res.status(500).json({ error: "Failed to update application status" });
+      res.status(500).json({ success: false, message: "Failed to update application status in MongoDB", error: err.message });
     }
   });
 
-  app.delete(["/api/admin/applications/:id", "/api/admin/applications/:id/"], async (req: Request, res: Response) => {
+  app.delete(["/api/admin/applications/:id", "/api/admin/applications/:id/"], requireMongoDb, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
-      if (isMongoConnected) {
-        const deletedApp = await (ApplicationModel as any).findByIdAndDelete(id);
-        if (!deletedApp) return res.status(404).json({ error: "Application not found" });
+      const deletedApp = await (ApplicationModel as any).findByIdAndDelete(id);
+      if (!deletedApp) return res.status(404).json({ success: false, message: "Application not found in MongoDB", error: "Not found" });
 
-        return res.json({
-          success: true,
-          message: "Application deleted successfully from database"
-        });
-      } else {
-        const appIndex = inMemoryApplications.findIndex(a => a.id === id || a._id === id);
-        if (appIndex === -1) return res.status(404).json({ error: "Application not found" });
-
-        inMemoryApplications.splice(appIndex, 1);
-        return res.json({
-          success: true,
-          message: "Application deleted successfully"
-        });
-      }
+      return res.json({
+        success: true,
+        message: "Application deleted successfully from MongoDB"
+      });
     } catch (err: any) {
-      res.status(500).json({ error: "Failed to delete application" });
+      res.status(500).json({ success: false, message: "Failed to delete application from MongoDB", error: err.message });
     }
   });
 
   // --- NEWS & ARTICLES ENDPOINTS ---
-  app.get(["/api/news", "/api/news/"], async (req: Request, res: Response) => {
+  app.get(["/api/news", "/api/news/"], requireMongoDb, async (req: Request, res: Response) => {
     try {
-      if (isMongoConnected) {
-        const articles = await (NewsArticleModel as any).find().sort({ createdAt: -1 });
-        const formatted = articles.map((doc: any) => ({
-          ...doc.toObject(),
-          id: doc._id.toString()
-        }));
-        return res.json(formatted);
-      } else {
-        return res.json(inMemoryNews);
-      }
-    } catch (err) {
-      console.error("Error fetching news:", err);
-      res.status(500).json({ error: "Failed to fetch news articles" });
+      const articles = await (NewsArticleModel as any).find().sort({ createdAt: -1 });
+      const formatted = articles.map((doc: any) => ({
+        ...doc.toObject(),
+        id: doc._id.toString()
+      }));
+      return res.json(formatted);
+    } catch (err: any) {
+      console.error("Error fetching news from MongoDB:", err);
+      res.status(500).json({ success: false, message: "Failed to fetch news articles from MongoDB", error: err.message });
     }
   });
 
-  app.post(["/api/news", "/api/news/"], async (req: Request, res: Response) => {
+  app.post(["/api/news", "/api/news/"], requireMongoDb, async (req: Request, res: Response) => {
     try {
       const { title, date, category, author, readTime, image, excerpt, content } = req.body;
 
       if (!title || !image || !excerpt) {
-        return res.status(400).json({ error: "Title, image, and excerpt are required" });
+        return res.status(400).json({ success: false, message: "Title, image, and excerpt are required", error: "Missing required fields" });
       }
 
       const formattedContent = Array.isArray(content)
@@ -940,77 +818,54 @@ async function startServer() {
         createdAt: new Date()
       };
 
-      if (isMongoConnected) {
-        const createdDoc = await (NewsArticleModel as any).create(newArticle);
-        const savedArticle = {
-          ...createdDoc.toObject(),
-          id: createdDoc._id.toString()
-        };
-        return res.status(201).json(savedArticle);
-      } else {
-        const memoryArticle = {
-          ...newArticle,
-          id: `news_${Date.now()}`
-        };
-        inMemoryNews.unshift(memoryArticle);
-        return res.status(201).json(memoryArticle);
-      }
-    } catch (err) {
-      console.error("Error creating news article:", err);
-      res.status(500).json({ error: "Failed to publish news article" });
+      const createdDoc = await (NewsArticleModel as any).create(newArticle);
+      const savedArticle = {
+        ...createdDoc.toObject(),
+        id: createdDoc._id.toString()
+      };
+      return res.status(201).json(savedArticle);
+    } catch (err: any) {
+      console.error("Error creating news article in MongoDB:", err);
+      res.status(500).json({ success: false, message: "Failed to publish news article to MongoDB", error: err.message });
     }
   });
 
-  app.delete(["/api/news/:id", "/api/news/:id/"], async (req: Request, res: Response) => {
+  app.delete(["/api/news/:id", "/api/news/:id/"], requireMongoDb, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
-      if (isMongoConnected) {
-        const deleted = await (NewsArticleModel as any).findByIdAndDelete(id);
-        if (!deleted) {
-          // Check if it's a seed or memory string
-          const idx = inMemoryNews.findIndex(n => n.id === id);
-          if (idx !== -1) inMemoryNews.splice(idx, 1);
-        }
-        return res.json({ success: true, message: "Article deleted successfully" });
-      } else {
-        const idx = inMemoryNews.findIndex(n => n.id === id || n._id === id);
-        if (idx !== -1) {
-          inMemoryNews.splice(idx, 1);
-        }
-        return res.json({ success: true, message: "Article deleted successfully" });
+      const deleted = await (NewsArticleModel as any).findByIdAndDelete(id);
+      if (!deleted) {
+        return res.status(404).json({ success: false, message: "News article not found in MongoDB", error: "Not found" });
       }
-    } catch (err) {
-      console.error("Error deleting news article:", err);
-      res.status(500).json({ error: "Failed to delete article" });
+      return res.json({ success: true, message: "Article deleted successfully from MongoDB" });
+    } catch (err: any) {
+      console.error("Error deleting news article from MongoDB:", err);
+      res.status(500).json({ success: false, message: "Failed to delete article from MongoDB", error: err.message });
     }
   });
 
   // --- GALLERY PICTURES ENDPOINTS ---
-  app.get(["/api/gallery", "/api/gallery/"], async (req: Request, res: Response) => {
+  app.get(["/api/gallery", "/api/gallery/"], requireMongoDb, async (req: Request, res: Response) => {
     try {
-      if (isMongoConnected) {
-        const items = await (GalleryItemModel as any).find().sort({ createdAt: -1 });
-        const formatted = items.map((doc: any) => ({
-          ...doc.toObject(),
-          id: doc._id.toString()
-        }));
-        return res.json(formatted);
-      } else {
-        return res.json(inMemoryGallery);
-      }
-    } catch (err) {
-      console.error("Error fetching gallery items:", err);
-      res.status(500).json({ error: "Failed to fetch gallery items" });
+      const items = await (GalleryItemModel as any).find().sort({ createdAt: -1 });
+      const formatted = items.map((doc: any) => ({
+        ...doc.toObject(),
+        id: doc._id.toString()
+      }));
+      return res.json(formatted);
+    } catch (err: any) {
+      console.error("Error fetching gallery items from MongoDB:", err);
+      res.status(500).json({ success: false, message: "Failed to fetch gallery items from MongoDB", error: err.message });
     }
   });
 
-  app.post(["/api/gallery", "/api/gallery/"], async (req: Request, res: Response) => {
+  app.post(["/api/gallery", "/api/gallery/"], requireMongoDb, async (req: Request, res: Response) => {
     try {
       const { title, category, image, caption, date } = req.body;
 
       if (!title || !image) {
-        return res.status(400).json({ error: "Title and image are required" });
+        return res.status(400).json({ success: false, message: "Title and image are required", error: "Missing required fields" });
       }
 
       const newGalleryItem = {
@@ -1022,52 +877,34 @@ async function startServer() {
         createdAt: new Date()
       };
 
-      if (isMongoConnected) {
-        const createdDoc = await (GalleryItemModel as any).create(newGalleryItem);
-        const savedItem = {
-          ...createdDoc.toObject(),
-          id: createdDoc._id.toString()
-        };
-        return res.status(201).json(savedItem);
-      } else {
-        const memoryItem = {
-          ...newGalleryItem,
-          id: `gal_${Date.now()}`
-        };
-        inMemoryGallery.unshift(memoryItem);
-        return res.status(201).json(memoryItem);
-      }
-    } catch (err) {
-      console.error("Error uploading gallery item:", err);
-      res.status(500).json({ error: "Failed to upload gallery picture" });
+      const createdDoc = await (GalleryItemModel as any).create(newGalleryItem);
+      const savedItem = {
+        ...createdDoc.toObject(),
+        id: createdDoc._id.toString()
+      };
+      return res.status(201).json(savedItem);
+    } catch (err: any) {
+      console.error("Error uploading gallery item to MongoDB:", err);
+      res.status(500).json({ success: false, message: "Failed to upload gallery picture to MongoDB", error: err.message });
     }
   });
 
-  app.delete(["/api/gallery/:id", "/api/gallery/:id/"], async (req: Request, res: Response) => {
+  app.delete(["/api/gallery/:id", "/api/gallery/:id/"], requireMongoDb, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
-      if (isMongoConnected) {
-        const deleted = await (GalleryItemModel as any).findByIdAndDelete(id);
-        if (!deleted) {
-          const idx = inMemoryGallery.findIndex(g => g.id === id);
-          if (idx !== -1) inMemoryGallery.splice(idx, 1);
-        }
-        return res.json({ success: true, message: "Picture deleted successfully" });
-      } else {
-        const idx = inMemoryGallery.findIndex(g => g.id === id || g._id === id);
-        if (idx !== -1) {
-          inMemoryGallery.splice(idx, 1);
-        }
-        return res.json({ success: true, message: "Picture deleted successfully" });
+      const deleted = await (GalleryItemModel as any).findByIdAndDelete(id);
+      if (!deleted) {
+        return res.status(404).json({ success: false, message: "Gallery picture not found in MongoDB", error: "Not found" });
       }
-    } catch (err) {
-      console.error("Error deleting gallery picture:", err);
-      res.status(500).json({ error: "Failed to delete picture" });
+      return res.json({ success: true, message: "Picture deleted successfully from MongoDB" });
+    } catch (err: any) {
+      console.error("Error deleting gallery picture from MongoDB:", err);
+      res.status(500).json({ success: false, message: "Failed to delete picture from MongoDB", error: err.message });
     }
   });
 
-  // Global Express JSON Error Handler for any unhandled exceptions in routes
+  // Global Express JSON Error Handler
   app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     console.error("Global express error:", err);
     if (res.headersSent) {
@@ -1081,7 +918,7 @@ async function startServer() {
     });
   });
 
-  // Explicit JSON 404 handler for any unhandled /api or /api/* routes
+  // Explicit JSON 404 handler for unhandled /api or /api/* routes
   app.all(["/api", "/api/*"], (req: Request, res: Response) => {
     res.status(404).json({
       success: false,
