@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { INSTITUTION_INFO, PROGRAMMES, FACILITIES, LATEST_NEWS } from '../data/schoolData';
 import { StoredApplication } from '../types';
+import { safeFetchJson } from '../lib/api';
 import {
   X,
   Lock,
@@ -60,6 +61,13 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   const { user, dbStatus } = useAuth();
   const [activeTab, setActiveTab] = useState<AdminTab>(defaultTab);
 
+  React.useEffect(() => {
+    if (isOpen) {
+      setActiveTab(defaultTab);
+      setAuthError('');
+    }
+  }, [isOpen, defaultTab]);
+
   // Admin Auth state
   const [adminAuthenticated, setAdminAuthenticated] = useState<boolean>(false);
   const [adminEmail, setAdminEmail] = useState('admin@darulanwar.edu.ng');
@@ -102,17 +110,17 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
     if (!window.confirm(`Are you sure you want to permanently delete application record for "${name}"? This cannot be undone.`)) return;
 
     try {
-      const res = await fetch(`/api/admin/applications/${appId}`, {
+      const res = await safeFetchJson(`/api/admin/applications/${appId}`, {
         method: 'DELETE'
       });
 
-      if (res.ok) {
+      if (res.success) {
         setApplications(apps => apps.filter(a => a.id !== appId && a._id !== appId));
         if (selectedApp && (selectedApp.id === appId || selectedApp._id === appId)) {
           setSelectedApp(null);
         }
       } else {
-        alert("Failed to delete application. Please try again.");
+        alert(res.message || "Failed to delete application. Please try again.");
       }
     } catch (err) {
       console.error("Error deleting application:", err);
@@ -172,19 +180,17 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   const fetchNewsAndGallery = async () => {
     try {
       const [newsRes, galRes] = await Promise.all([
-        fetch('/api/news'),
-        fetch('/api/gallery')
+        safeFetchJson('/api/news'),
+        safeFetchJson('/api/gallery')
       ]);
-      if (newsRes.ok) {
-        const newsData = await newsRes.json();
-        setNewsList(newsData);
+      if (newsRes.success && Array.isArray(newsRes.data)) {
+        setNewsList(newsRes.data);
       }
-      if (galRes.ok) {
-        const galData = await galRes.json();
-        setGalleryItems(galData);
+      if (galRes.success && Array.isArray(galRes.data)) {
+        setGalleryItems(galRes.data);
       }
     } catch (err) {
-      console.error("Error fetching news/gallery:", err);
+      console.warn("Notice fetching news/gallery:", err);
     }
   };
 
@@ -231,7 +237,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
 
     setIsPublishingNews(true);
     try {
-      const res = await fetch('/api/news', {
+      const res = await safeFetchJson('/api/news', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -244,16 +250,15 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
         })
       });
 
-      if (res.ok) {
-        const publishedArticle = await res.json();
-        setNewsList(prev => [publishedArticle, ...prev]);
+      if (res.success && res.data) {
+        setNewsList(prev => [res.data, ...prev]);
         setNewNewsTitle('');
         setNewNewsExcerpt('');
         setNewNewsContent('');
         setNewNewsImage('');
         alert("Article published successfully on the website!");
       } else {
-        alert("Failed to publish article. Please check input and try again.");
+        alert(res.message || "Failed to publish article. Please check input and try again.");
       }
     } catch (err) {
       console.error("Error publishing article:", err);
@@ -267,11 +272,11 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
     if (!window.confirm(`Are you sure you want to delete article "${title}" from the website?`)) return;
 
     try {
-      const res = await fetch(`/api/news/${id}`, { method: 'DELETE' });
-      if (res.ok) {
+      const res = await safeFetchJson(`/api/news/${id}`, { method: 'DELETE' });
+      if (res.success) {
         setNewsList(prev => prev.filter(item => (item.id !== id && item._id !== id)));
       } else {
-        alert("Failed to delete article.");
+        alert(res.message || "Failed to delete article.");
       }
     } catch (err) {
       console.error("Error deleting article:", err);
@@ -288,7 +293,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
 
     setIsUploadingGal(true);
     try {
-      const res = await fetch('/api/gallery', {
+      const res = await safeFetchJson('/api/gallery', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -299,15 +304,14 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
         })
       });
 
-      if (res.ok) {
-        const uploadedItem = await res.json();
-        setGalleryItems(prev => [uploadedItem, ...prev]);
+      if (res.success && res.data) {
+        setGalleryItems(prev => [res.data, ...prev]);
         setNewGalTitle('');
         setNewGalCaption('');
         setNewGalImage('');
         alert("Photo uploaded successfully to the gallery!");
       } else {
-        alert("Failed to upload photo. Please try again.");
+        alert(res.message || "Failed to upload photo. Please try again.");
       }
     } catch (err) {
       console.error("Error uploading gallery photo:", err);
@@ -321,11 +325,11 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
     if (!window.confirm(`Are you sure you want to delete picture "${title}" from the gallery?`)) return;
 
     try {
-      const res = await fetch(`/api/gallery/${id}`, { method: 'DELETE' });
-      if (res.ok) {
+      const res = await safeFetchJson(`/api/gallery/${id}`, { method: 'DELETE' });
+      if (res.success) {
         setGalleryItems(prev => prev.filter(item => (item.id !== id && item._id !== id)));
       } else {
-        alert("Failed to delete picture.");
+        alert(res.message || "Failed to delete picture.");
       }
     } catch (err) {
       console.error("Error deleting picture:", err);
@@ -353,12 +357,11 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   const fetchAdminApplications = async () => {
     setIsLoadingApps(true);
     try {
-      const res = await fetch('/api/admin/applications');
-      if (res.ok) {
-        const data = await res.json();
-        setApplications(data);
-        if (data.length > 0 && !selectedApp) {
-          setSelectedApp(data[0]);
+      const res = await safeFetchJson('/api/admin/applications');
+      if (res.success && Array.isArray(res.data)) {
+        setApplications(res.data);
+        if (res.data.length > 0 && !selectedApp) {
+          setSelectedApp(res.data[0]);
         }
       }
     } catch (err) {
@@ -379,21 +382,20 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
       const cleanPasscode = (passcode || '').trim();
       const cleanPassword = (adminPassword || '').trim();
 
-      const res = await fetch('/api/admin/login', {
+      const res = await safeFetchJson('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: cleanEmail, password: cleanPassword, passcode: cleanPasscode })
       });
 
-      const data = await res.json().catch(() => ({ error: 'Invalid response from server' }));
       setIsAuthLoading(false);
 
-      if (res.ok && data.success) {
+      if (res.success && res.data?.success) {
         setAdminAuthenticated(true);
         setActiveTab('admissions');
         fetchAdminApplications();
       } else {
-        setAuthError(data.error || 'Invalid Admin Credentials or Passcode');
+        setAuthError(res.message || res.error || 'Invalid Admin Credentials or Passcode');
       }
     } catch (err: any) {
       setIsAuthLoading(false);
@@ -404,13 +406,13 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   // Update Application Status (Approve / Reject / Under Review)
   const handleUpdateStatus = async (appId: string, newStatus: 'accepted' | 'rejected' | 'under_review' | 'pending') => {
     try {
-      const res = await fetch(`/api/admin/applications/${appId}/status`, {
+      const res = await safeFetchJson(`/api/admin/applications/${appId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
       });
 
-      if (res.ok) {
+      if (res.success) {
         setApplications(apps =>
           apps.map(a => (a.id === appId || a._id === appId) ? { ...a, status: newStatus } : a)
         );

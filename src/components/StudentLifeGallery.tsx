@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { GALLERY_ITEMS } from '../data/schoolData';
 import { GalleryItem } from '../types';
 import { Sparkles, Maximize2, Calendar, Tag, X } from 'lucide-react';
+import { safeFetchJson } from '../lib/api';
 
 export const StudentLifeGallery: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('All');
@@ -9,15 +10,14 @@ export const StudentLifeGallery: React.FC = () => {
   const [galleryList, setGalleryList] = useState<GalleryItem[]>(GALLERY_ITEMS);
 
   useEffect(() => {
-    fetch('/api/gallery')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setGalleryList(data);
+    safeFetchJson<GalleryItem[]>('/api/gallery')
+      .then(res => {
+        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+          setGalleryList(res.data);
         }
       })
       .catch(err => {
-        console.error("Failed to fetch gallery items:", err);
+        console.warn("Notice fetching gallery items:", err);
       });
   }, []);
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { INSTITUTION_INFO, PROGRAMMES } from '../data/schoolData';
 import { StoredApplication } from '../types';
+import { safeFetchJson } from '../lib/api';
 import {
   X,
   User,
@@ -105,6 +106,15 @@ export const ApplicantDashboardModal: React.FC<ApplicantDashboardModalProps> = (
   const [selectedAppForSlip, setSelectedAppForSlip] = useState<StoredApplication | null>(null);
 
   useEffect(() => {
+    if (isOpen) {
+      setActiveTab(defaultTab);
+      setRegError('');
+      setRegSuccess('');
+      setLoginError('');
+    }
+  }, [isOpen, defaultTab]);
+
+  useEffect(() => {
     if (user) {
       if (!fullName) setFullName(user.fullName);
       if (!parentName) setParentName(user.fullName);
@@ -195,7 +205,7 @@ export const ApplicantDashboardModal: React.FC<ApplicantDashboardModalProps> = (
     setIsSubmitting(true);
 
     try {
-      const res = await fetch('/api/applications', {
+      const result = await safeFetchJson('/api/applications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -217,15 +227,14 @@ export const ApplicantDashboardModal: React.FC<ApplicantDashboardModalProps> = (
         })
       });
 
-      const data = await res.json();
       setIsSubmitting(false);
 
-      if (res.ok && data.success) {
-        setSubmitSuccess(data.application);
-        setSelectedAppForSlip(data.application);
+      if (result.success && result.data?.application) {
+        setSubmitSuccess(result.data.application);
+        setSelectedAppForSlip(result.data.application);
         fetchMyApplications();
       } else {
-        setSubmitError(data.error || 'Failed to submit application to database.');
+        setSubmitError(result.message || result.error || 'Failed to submit application to database.');
       }
     } catch (err: any) {
       setIsSubmitting(false);

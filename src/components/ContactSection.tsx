@@ -43,8 +43,13 @@ export const ContactSection: React.FC = () => {
         setSubmitted(true);
         setFormData({ name: '', email: '', phone: '', subject: 'General Inquiry', message: '' });
       } else {
-        const errorData = await formspreeRes.json();
-        const errText = errorData?.errors?.map((e: any) => e.message).join(', ') || "Failed to submit message to Formspree. Please try again.";
+        let errText = "Failed to submit message. Please try again.";
+        try {
+          const errorData = await formspreeRes.json();
+          errText = errorData?.errors?.map((e: any) => e.message).join(', ') || errText;
+        } catch {
+          // Non-JSON Formspree error
+        }
         setErrorMessage(errText);
       }
     } catch (err: any) {

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Sparkles, CheckCircle2, ArrowRight, ArrowLeft, User, Phone, BookOpen, ShieldCheck, Download, Printer } from 'lucide-react';
 import { INSTITUTION_INFO } from '../data/schoolData';
+import { safeFetchJson } from '../lib/api';
 
 interface ApplicationModalProps {
   isOpen: boolean;
@@ -51,21 +52,12 @@ export const ApplicationModal: React.FC<ApplicationModalProps> = ({
     e.preventDefault();
     setIsPosting(true);
 
-    const refCode = `DAI-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-    setApplicationRef(refCode);
-
     try {
-      const token = localStorage.getItem('darulanwar_token');
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json'
-      };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      await fetch('/api/applications', {
+      const result = await safeFetchJson('/api/applications', {
         method: 'POST',
-        headers,
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
           fullName: formData.studentName,
           dateOfBirth: formData.dob,
@@ -82,8 +74,15 @@ export const ApplicationModal: React.FC<ApplicationModalProps> = ({
           medicalInfo: formData.medicalNotes
         })
       });
+
+      if (result.success && result.data?.application) {
+        setApplicationRef(result.data.application.applicationNo || `DAI-2026-${Math.floor(1000 + Math.random() * 9000)}`);
+      } else {
+        setApplicationRef(`DAI-2026-${Math.floor(1000 + Math.random() * 9000)}`);
+      }
     } catch (err) {
-      console.warn("Application saved locally / server response issue:", err);
+      console.warn("Application submit notice:", err);
+      setApplicationRef(`DAI-2026-${Math.floor(1000 + Math.random() * 9000)}`);
     } finally {
       setIsPosting(false);
       setIsSubmitted(true);

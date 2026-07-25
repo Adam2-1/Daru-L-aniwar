@@ -432,7 +432,7 @@ async function startServer() {
         try {
           const existingUser = await (UserModel as any).findOne({ email: normalizedEmail });
           if (existingUser) {
-            return res.status(400).json({ error: "An account with this email already exists" });
+            return res.status(400).json({ error: "An account with this email address already exists. Please log in instead." });
           }
 
           const newUser = await UserModel.create({
@@ -469,7 +469,7 @@ async function startServer() {
       // In-Memory Fallback
       const existingUser = inMemoryUsers.find(u => u.email === normalizedEmail);
       if (existingUser) {
-        return res.status(400).json({ error: "An account with this email already exists" });
+        return res.status(400).json({ error: "An account with this email address already exists. Please log in instead." });
       }
 
       const id = "mem_usr_" + Date.now() + "_" + Math.random().toString(36).substr(2, 4);
@@ -546,8 +546,10 @@ async function startServer() {
                 },
               });
             } else {
-              return res.status(401).json({ error: "Invalid email or password" });
+              return res.status(401).json({ error: "Incorrect password. Please try again." });
             }
+          } else {
+            return res.status(401).json({ error: "No account found with this email address. Please register first." });
           }
         } catch (dbErr) {
           console.warn("MongoDB Login error, falling back to memory:", dbErr);
@@ -557,12 +559,12 @@ async function startServer() {
       // In-Memory Fallback
       const user = inMemoryUsers.find(u => u.email === normalizedEmail);
       if (!user) {
-        return res.status(401).json({ error: "Invalid email or password" });
+        return res.status(401).json({ error: "No account found with this email address. Please register first." });
       }
 
       const isMatch = await bcrypt.compare(password, user.passwordHash);
       if (!isMatch) {
-        return res.status(401).json({ error: "Invalid email or password" });
+        return res.status(401).json({ error: "Incorrect password. Please try again." });
       }
 
       const token = generateToken({
@@ -1037,9 +1039,27 @@ async function startServer() {
     }
   });
 
+  // Global Express JSON Error Handler for any unhandled exceptions in routes
+  app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+    console.error("Global express error:", err);
+    if (res.headersSent) {
+      return next(err);
+    }
+    const status = err.status || err.statusCode || 500;
+    return res.status(status).json({
+      success: false,
+      message: err.message || "An internal server error occurred.",
+      error: err.name || "ServerError"
+    });
+  });
+
   // Explicit JSON 404 handler for any unhandled /api/* routes
   app.all("/api/*", (req: Request, res: Response) => {
-    res.status(404).json({ error: `API route ${req.method} ${req.path} not found` });
+    res.status(404).json({
+      success: false,
+      message: `API route ${req.method} ${req.path} not found`,
+      error: "404 Not Found"
+    });
   });
 
   if (process.env.NODE_ENV !== "production") {

@@ -2,21 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { LATEST_NEWS } from '../data/schoolData';
 import { NewsArticle } from '../types';
 import { Sparkles, Calendar, Clock, ArrowRight, User, X } from 'lucide-react';
+import { safeFetchJson } from '../lib/api';
 
 export const LatestNews: React.FC = () => {
   const [selectedArticle, setSelectedArticle] = useState<NewsArticle | null>(null);
   const [articlesList, setArticlesList] = useState<NewsArticle[]>(LATEST_NEWS);
 
   useEffect(() => {
-    fetch('/api/news')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setArticlesList(data);
+    safeFetchJson<NewsArticle[]>('/api/news')
+      .then(res => {
+        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+          setArticlesList(res.data);
         }
       })
       .catch(err => {
-        console.error("Failed to fetch news articles:", err);
+        console.warn("Notice fetching news articles:", err);
       });
   }, []);
 

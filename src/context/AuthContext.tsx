@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserProfile, DatabaseStatus, StoredApplication } from '../types';
+import { safeFetchJson } from '../lib/api';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -26,13 +27,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Check DB Status
   const checkDbStatus = async () => {
     try {
-      const res = await fetch('/api/db-status');
-      if (res.ok) {
-        const data = await res.json();
-        setDbStatus(data);
+      const result = await safeFetchJson<DatabaseStatus>('/api/db-status');
+      if (result.success && result.data) {
+        setDbStatus(result.data);
       }
     } catch (err) {
-      console.warn("DB status check error:", err);
+      console.warn("DB status check warning:", err);
     }
   };
 
@@ -40,14 +40,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchCurrentUser = async (authToken: string) => {
     try {
       setIsLoading(true);
-      const res = await fetch('/api/auth/me', {
+      const result = await safeFetchJson<UserProfile>('/api/auth/me', {
         headers: {
           'Authorization': `Bearer ${authToken}`
         }
       });
-      if (res.ok) {
-        const userData = await res.json();
-        setUser(userData);
+      if (result.success && result.data) {
+        setUser(result.data);
       } else {
         // Token expired or invalid
         try {
@@ -73,10 +72,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const res = await fetch('/api/applications', { headers });
-      if (res.ok) {
-        const apps = await res.json();
-        setMyApplications(apps);
+      const result = await safeFetchJson<StoredApplication[]>('/api/applications', { headers });
+      if (result.success && Array.isArray(result.data)) {
+        setMyApplications(result.data);
+      } else if (result.success && result.data && Array.isArray((result.data as any).applications)) {
+        setMyApplications((result.data as any).applications);
       }
     } catch (err) {
       console.error("Fetch applications error:", err);
@@ -130,22 +130,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: 'Please enter your email and password.' };
       }
 
-      const res = await fetch('/api/auth/login', {
+      const res = await safeFetchJson<{ token: string; user: UserProfile }>('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: cleanEmail, password: cleanPassword })
       });
 
-      const parsed = await parseResponse(res, 'Invalid email or password');
-
-      if (!parsed.success) {
-        return { success: false, error: parsed.error };
+      if (!res.success || !res.data?.token) {
+        return { success: false, error: res.message || res.error || 'Invalid email or password' };
       }
 
-      setToken(parsed.token);
-      setUser(parsed.user);
+      setToken(res.data.token);
+      setUser(res.data.user);
       try {
-        localStorage.setItem('darulanwar_token', parsed.token);
+        localStorage.setItem('darulanwar_token', res.data.token);
       } catch (e) {
         console.warn('LocalStorage save failed:', e);
       }
@@ -172,22 +170,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: 'Password must be at least 6 characters long.' };
       }
 
-      const res = await fetch('/api/auth/register', {
+      const res = await safeFetchJson<{ token: string; user: UserProfile }>('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fullName: cleanName, email: cleanEmail, password: cleanPassword, phone: cleanPhone, role: role || 'parent' })
       });
 
-      const parsed = await parseResponse(res, 'Registration failed');
-
-      if (!parsed.success) {
-        return { success: false, error: parsed.error };
+      if (!res.success || !res.data?.token) {
+        return { success: false, error: res.message || res.error || 'Registration failed' };
       }
 
-      setToken(parsed.token);
-      setUser(parsed.user);
+      setToken(res.data.token);
+      setUser(res.data.user);
       try {
-        localStorage.setItem('darulanwar_token', parsed.token);
+        localStorage.setItem('darulanwar_token', res.data.token);
       } catch (e) {
         console.warn('LocalStorage save failed:', e);
       }
