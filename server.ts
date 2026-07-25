@@ -376,6 +376,7 @@ async function startServer() {
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
   }));
   app.options('*', cors());
+  app.options(/(.*)/, cors());
 
   app.use(express.json({ limit: '15mb' }));
   app.use(express.urlencoded({ extended: true, limit: '15mb' }));
@@ -413,20 +414,33 @@ async function startServer() {
   });
 
   // 2. Auth: Register
+  app.options(["/api/auth/register", "/api/auth/register/"], cors());
+  app.get(["/api/auth/register", "/api/auth/register/"], (req, res) => {
+    return res.status(400).json({ success: false, message: "Registration requires a POST request with account details." });
+  });
+
   app.post(["/api/auth/register", "/api/auth/register/"], async (req, res) => {
     try {
-      const { fullName, email, password, phone, role } = req.body || {};
+      let body = req.body || {};
+      if (typeof body === 'string') {
+        try { body = JSON.parse(body); } catch { body = {}; }
+      }
+      const fullName = body.fullName || body.name;
+      const email = body.email;
+      const password = body.password;
+      const phone = body.phone;
+      const role = body.role;
 
       if (!fullName || !email || !password) {
         return res.status(400).json({ error: "Name, email, and password are required" });
       }
 
-      if (password.length < 6) {
+      if (String(password).length < 6) {
         return res.status(400).json({ error: "Password must be at least 6 characters" });
       }
 
-      const normalizedEmail = email.toLowerCase().trim();
-      const passwordHash = await bcrypt.hash(password, 10);
+      const normalizedEmail = String(email).toLowerCase().trim();
+      const passwordHash = await bcrypt.hash(String(password), 10);
 
       if (isMongoConnected) {
         try {
@@ -510,31 +524,32 @@ async function startServer() {
     }
   });
 
-  // GET fallback for register
-  app.get(["/api/auth/register", "/api/auth/register/"], (req, res) => {
-    return res.status(400).json({ success: false, message: "Registration requires a POST request with account details." });
-  });
-
   // 3. Auth: Login
+  app.options(["/api/auth/login", "/api/auth/login/"], cors());
   app.get(["/api/auth/login", "/api/auth/login/"], (req, res) => {
     return res.status(400).json({ success: false, message: "Login requires a POST request with email and password." });
   });
 
   app.post(["/api/auth/login", "/api/auth/login/"], async (req, res) => {
     try {
-      const { email, password } = req.body || {};
+      let body = req.body || {};
+      if (typeof body === 'string') {
+        try { body = JSON.parse(body); } catch { body = {}; }
+      }
+      const email = body.email || body.username;
+      const password = body.password;
 
       if (!email || !password) {
         return res.status(400).json({ error: "Email and password are required" });
       }
 
-      const normalizedEmail = email.toLowerCase().trim();
+      const normalizedEmail = String(email).toLowerCase().trim();
 
       if (isMongoConnected) {
         try {
           const user = await (UserModel as any).findOne({ email: normalizedEmail });
           if (user) {
-            const isMatch = await bcrypt.compare(password, user.passwordHash);
+            const isMatch = await bcrypt.compare(String(password), user.passwordHash);
             if (isMatch) {
               const token = generateToken({
                 id: user._id.toString(),
@@ -571,7 +586,7 @@ async function startServer() {
         return res.status(401).json({ error: "No account found with this email address. Please register first." });
       }
 
-      const isMatch = await bcrypt.compare(password, user.passwordHash);
+      const isMatch = await bcrypt.compare(String(password), user.passwordHash);
       if (!isMatch) {
         return res.status(401).json({ error: "Incorrect password. Please try again." });
       }
