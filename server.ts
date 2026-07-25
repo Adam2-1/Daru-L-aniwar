@@ -381,7 +381,7 @@ async function startServer() {
   app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
   // 1. Database Status Endpoint
-  app.get("/api/db-status", async (req, res) => {
+  app.get(["/api/db-status", "/api/db-status/"], async (req, res) => {
     let stats = null;
     if (isMongoConnected) {
       try {
@@ -413,7 +413,7 @@ async function startServer() {
   });
 
   // 2. Auth: Register
-  app.post("/api/auth/register", async (req, res) => {
+  app.post(["/api/auth/register", "/api/auth/register/"], async (req, res) => {
     try {
       const { fullName, email, password, phone, role } = req.body || {};
 
@@ -510,8 +510,17 @@ async function startServer() {
     }
   });
 
+  // GET fallback for register
+  app.get(["/api/auth/register", "/api/auth/register/"], (req, res) => {
+    return res.status(400).json({ success: false, message: "Registration requires a POST request with account details." });
+  });
+
   // 3. Auth: Login
-  app.post("/api/auth/login", async (req, res) => {
+  app.get(["/api/auth/login", "/api/auth/login/"], (req, res) => {
+    return res.status(400).json({ success: false, message: "Login requires a POST request with email and password." });
+  });
+
+  app.post(["/api/auth/login", "/api/auth/login/"], async (req, res) => {
     try {
       const { email, password } = req.body || {};
 
@@ -592,7 +601,7 @@ async function startServer() {
   });
 
   // 4. Auth: Get Current User Profile
-  app.get("/api/auth/me", authenticateToken, async (req: AuthRequest, res: Response) => {
+  app.get(["/api/auth/me", "/api/auth/me/"], authenticateToken, async (req: AuthRequest, res: Response) => {
     try {
       if (!req.user) return res.status(401).json({ error: "Unauthenticated" });
 
@@ -627,7 +636,7 @@ async function startServer() {
   });
 
   // 5. Applications: Submit Admission Application
-  app.post("/api/applications", optionalAuthToken, async (req: AuthRequest, res: Response) => {
+  app.post(["/api/applications", "/api/applications/"], optionalAuthToken, async (req: AuthRequest, res: Response) => {
     try {
       const data = req.body;
 
@@ -691,7 +700,7 @@ async function startServer() {
   });
 
   // 6. Applications: Get User Applications or All Applications
-  app.get("/api/applications", optionalAuthToken, async (req: AuthRequest, res: Response) => {
+  app.get(["/api/applications", "/api/applications/"], optionalAuthToken, async (req: AuthRequest, res: Response) => {
     try {
       const emailQuery = req.query.email as string;
 
@@ -723,7 +732,7 @@ async function startServer() {
   });
 
   // 7. Contact Messages Endpoint
-  app.post("/api/contact", async (req, res) => {
+  app.post(["/api/contact", "/api/contact/"], async (req, res) => {
     try {
       const { name, email, phone, subject, message } = req.body;
 
@@ -751,7 +760,11 @@ async function startServer() {
   });
 
   // 8. Admin Routes: Admin Authentication & Application Management
-  app.post("/api/admin/login", async (req: Request, res: Response) => {
+  app.get(["/api/admin/login", "/api/admin/login/"], (req: Request, res: Response) => {
+    return res.status(400).json({ success: false, message: "Admin login requires a POST request with credentials." });
+  });
+
+  app.post(["/api/admin/login", "/api/admin/login/"], async (req: Request, res: Response) => {
     try {
       const { email, password, passcode } = req.body;
       const validAdminEmails = ["admin@darulanwar.edu.ng", "onilenlaolasunkanmi@gmail.com", "admin"];
@@ -785,7 +798,7 @@ async function startServer() {
     }
   });
 
-  app.get("/api/admin/applications", async (req: Request, res: Response) => {
+  app.get(["/api/admin/applications", "/api/admin/applications/"], async (req: Request, res: Response) => {
     try {
       if (isMongoConnected) {
         const apps = await (ApplicationModel as any).find({}).sort({ submittedAt: -1 });
@@ -801,7 +814,7 @@ async function startServer() {
     }
   });
 
-  app.patch("/api/admin/applications/:id/status", async (req: Request, res: Response) => {
+  app.patch(["/api/admin/applications/:id/status", "/api/admin/applications/:id/status/"], async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { status } = req.body;
@@ -840,7 +853,7 @@ async function startServer() {
     }
   });
 
-  app.delete("/api/admin/applications/:id", async (req: Request, res: Response) => {
+  app.delete(["/api/admin/applications/:id", "/api/admin/applications/:id/"], async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
@@ -868,7 +881,7 @@ async function startServer() {
   });
 
   // --- NEWS & ARTICLES ENDPOINTS ---
-  app.get("/api/news", async (req: Request, res: Response) => {
+  app.get(["/api/news", "/api/news/"], async (req: Request, res: Response) => {
     try {
       if (isMongoConnected) {
         const articles = await (NewsArticleModel as any).find().sort({ createdAt: -1 });
@@ -886,7 +899,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/news", async (req: Request, res: Response) => {
+  app.post(["/api/news", "/api/news/"], async (req: Request, res: Response) => {
     try {
       const { title, date, category, author, readTime, image, excerpt, content } = req.body;
 
@@ -933,7 +946,7 @@ async function startServer() {
     }
   });
 
-  app.delete("/api/news/:id", async (req: Request, res: Response) => {
+  app.delete(["/api/news/:id", "/api/news/:id/"], async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
@@ -959,7 +972,7 @@ async function startServer() {
   });
 
   // --- GALLERY PICTURES ENDPOINTS ---
-  app.get("/api/gallery", async (req: Request, res: Response) => {
+  app.get(["/api/gallery", "/api/gallery/"], async (req: Request, res: Response) => {
     try {
       if (isMongoConnected) {
         const items = await (GalleryItemModel as any).find().sort({ createdAt: -1 });
@@ -977,7 +990,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/gallery", async (req: Request, res: Response) => {
+  app.post(["/api/gallery", "/api/gallery/"], async (req: Request, res: Response) => {
     try {
       const { title, category, image, caption, date } = req.body;
 
@@ -1015,7 +1028,7 @@ async function startServer() {
     }
   });
 
-  app.delete("/api/gallery/:id", async (req: Request, res: Response) => {
+  app.delete(["/api/gallery/:id", "/api/gallery/:id/"], async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
@@ -1053,8 +1066,8 @@ async function startServer() {
     });
   });
 
-  // Explicit JSON 404 handler for any unhandled /api/* routes
-  app.all("/api/*", (req: Request, res: Response) => {
+  // Explicit JSON 404 handler for any unhandled /api or /api/* routes
+  app.all(["/api", "/api/*"], (req: Request, res: Response) => {
     res.status(404).json({
       success: false,
       message: `API route ${req.method} ${req.path} not found`,

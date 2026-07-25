@@ -38,10 +38,18 @@ export async function safeFetchJson<T = any>(
       if (res.ok) {
         return { success: true, status: res.status };
       }
+      let errorMsg = `Server error (HTTP ${res.status}). Please try again.`;
+      if (res.status === 405) {
+        errorMsg = "Server error (HTTP 405: Method Not Allowed). Please try submitting again.";
+      } else if (res.status === 404) {
+        errorMsg = "Requested server endpoint was not found (HTTP 404).";
+      } else if (res.status === 401) {
+        errorMsg = "Authentication error (HTTP 401). Please check your credentials.";
+      }
       return {
         success: false,
         status: res.status,
-        message: `Server returned empty response (HTTP ${res.status})`,
+        message: errorMsg,
         error: `HTTP ${res.status}`
       };
     }
