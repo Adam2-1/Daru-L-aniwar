@@ -1,3 +1,4 @@
+import { safeFetchJson } from '../lib/api';
 import React, { useState } from 'react';
 import { INSTITUTION_INFO, FAQS } from '../data/schoolData';
 import { MapPin, Phone, Mail, Clock, Send, Sparkles, CheckCircle2, ChevronDown, ChevronUp, MessageSquare, MessageCircle } from 'lucide-react';
@@ -33,7 +34,7 @@ export const ContactSection: React.FC = () => {
       });
 
       // 2. Also log in local database / MongoDB for admin dashboard records
-      fetch('/api/contact', {
+      safeFetchJson('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -56,7 +57,7 @@ export const ContactSection: React.FC = () => {
       console.error("Formspree submission error:", err);
       // Fallback: save to local database if Formspree fetch fails due to network/adblocker
       try {
-        await fetch('/api/contact', {
+        await safeFetchJson('/api/contact', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData)
