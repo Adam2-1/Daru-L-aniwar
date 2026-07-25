@@ -5,6 +5,7 @@ import mongoose, { Schema, Document } from "mongoose";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
+import cors from "cors";
 
 dotenv.config();
 
@@ -366,6 +367,16 @@ function optionalAuthToken(req: AuthRequest, res: Response, next: NextFunction) 
 
 async function startServer() {
   const app = express();
+
+  // Enable CORS & Preflight OPTIONS for mobile devices, cross-origin webviews, and proxies
+  app.use(cors({
+    origin: true,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
+  }));
+  app.options('*', cors());
+
   app.use(express.json({ limit: '15mb' }));
   app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
@@ -1025,6 +1036,12 @@ async function startServer() {
       res.status(500).json({ error: "Failed to delete picture" });
     }
   });
+
+  // Explicit JSON 404 handler for any unhandled /api/* routes
+  app.all("/api/*", (req: Request, res: Response) => {
+    res.status(404).json({ error: `API route ${req.method} ${req.path} not found` });
+  });
+
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },

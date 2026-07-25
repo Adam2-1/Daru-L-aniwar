@@ -102,7 +102,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const text = await res.text();
       if (!text || !text.trim()) {
-        return { success: false, error: `${defaultErrMsg} (Empty response from server, HTTP ${res.status})` };
+        if (res.status === 401) return { success: false, error: 'Invalid email or password' };
+        if (res.status === 400) return { success: false, error: 'Please check your information and try again.' };
+        return { success: false, error: `${defaultErrMsg}. Please try again.` };
       }
       try {
         const json = JSON.parse(text);
@@ -111,10 +113,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         return { success: true, ...json };
       } catch {
-        return { success: false, error: `${defaultErrMsg} (Server returned non-JSON error ${res.status}). Please try again.` };
+        if (res.status === 401) return { success: false, error: 'Invalid email or password' };
+        return { success: false, error: `${defaultErrMsg}. Please try again.` };
       }
     } catch (e: any) {
-      return { success: false, error: e?.message || 'Network connection failed' };
+      return { success: false, error: e?.message || 'Network connection failed. Please check your internet.' };
     }
   };
 
