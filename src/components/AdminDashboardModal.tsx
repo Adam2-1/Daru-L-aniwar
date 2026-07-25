@@ -375,13 +375,17 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
     setIsAuthLoading(true);
 
     try {
+      const cleanEmail = (adminEmail || '').trim().toLowerCase();
+      const cleanPasscode = (passcode || '').trim();
+      const cleanPassword = (adminPassword || '').trim();
+
       const res = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: adminEmail, password: adminPassword, passcode })
+        body: JSON.stringify({ email: cleanEmail, password: cleanPassword, passcode: cleanPasscode })
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({ error: 'Invalid response from server' }));
       setIsAuthLoading(false);
 
       if (res.ok && data.success) {
@@ -610,7 +614,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                     </button>
                   </div>
                 ) : (
-                  <form onSubmit={handleAdminLogin} className="space-y-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                  <form noValidate onSubmit={handleAdminLogin} className="space-y-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">Admin Email Address</label>
                       <div className="relative">
@@ -618,6 +622,10 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                         <input
                           type="text"
                           required
+                          autoCapitalize="none"
+                          autoCorrect="off"
+                          spellCheck={false}
+                          inputMode="email"
                           value={adminEmail}
                           onChange={(e) => setAdminEmail(e.target.value)}
                           className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 focus:border-[#D4AF37] outline-none"
@@ -632,6 +640,9 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                         <input
                           type="password"
                           required
+                          autoCapitalize="none"
+                          autoCorrect="off"
+                          spellCheck={false}
                           value={passcode}
                           onChange={(e) => setPasscode(e.target.value)}
                           placeholder="e.g. admin123"

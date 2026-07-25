@@ -380,7 +380,7 @@ export const ApplicantDashboardModal: React.FC<ApplicantDashboardModalProps> = (
                   </div>
                 )}
 
-                <form onSubmit={handleRegisterSubmit} className="space-y-4">
+                <form noValidate onSubmit={handleRegisterSubmit} className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">Full Name (Parent / Guardian / Candidate)</label>
                     <div className="relative">
@@ -403,6 +403,10 @@ export const ApplicantDashboardModal: React.FC<ApplicantDashboardModalProps> = (
                       <input
                         type="email"
                         required
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        inputMode="email"
                         value={regEmail}
                         onChange={(e) => setRegEmail(e.target.value)}
                         placeholder="e.g. ibrahim@example.com"
@@ -434,7 +438,9 @@ export const ApplicantDashboardModal: React.FC<ApplicantDashboardModalProps> = (
                         <input
                           type="password"
                           required
-                          minLength={6}
+                          autoCapitalize="none"
+                          autoCorrect="off"
+                          spellCheck={false}
                           value={regPassword}
                           onChange={(e) => setRegPassword(e.target.value)}
                           placeholder="At least 6 characters"
@@ -507,7 +513,7 @@ export const ApplicantDashboardModal: React.FC<ApplicantDashboardModalProps> = (
                     </button>
                   </div>
                 ) : (
-                  <form onSubmit={handleLoginSubmit} className="space-y-4">
+                  <form noValidate onSubmit={handleLoginSubmit} className="space-y-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">Email Address</label>
                       <div className="relative">
@@ -515,6 +521,10 @@ export const ApplicantDashboardModal: React.FC<ApplicantDashboardModalProps> = (
                         <input
                           type="email"
                           required
+                          autoCapitalize="none"
+                          autoCorrect="off"
+                          spellCheck={false}
+                          inputMode="email"
                           value={loginEmail}
                           onChange={(e) => setLoginEmail(e.target.value)}
                           placeholder="Your registered email"
@@ -530,6 +540,9 @@ export const ApplicantDashboardModal: React.FC<ApplicantDashboardModalProps> = (
                         <input
                           type="password"
                           required
+                          autoCapitalize="none"
+                          autoCorrect="off"
+                          spellCheck={false}
                           value={loginPassword}
                           onChange={(e) => setLoginPassword(e.target.value)}
                           placeholder="Your password"

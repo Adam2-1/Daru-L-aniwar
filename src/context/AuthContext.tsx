@@ -50,7 +50,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(userData);
       } else {
         // Token expired or invalid
-        localStorage.removeItem('darulanwar_token');
+        try {
+          localStorage.removeItem('darulanwar_token');
+        } catch (e) {
+          console.warn('LocalStorage error:', e);
+        }
         setToken(null);
         setUser(null);
       }
@@ -96,21 +100,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     try {
+      const cleanEmail = (email || '').trim().toLowerCase();
+      const cleanPassword = (password || '').trim();
+
+      if (!cleanEmail || !cleanPassword) {
+        return { success: false, error: 'Please enter your email and password.' };
+      }
+
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email: cleanEmail, password: cleanPassword })
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({ error: 'Failed to parse response from server' }));
 
       if (!res.ok) {
-        return { success: false, error: data.error || 'Invalid credentials' };
+        return { success: false, error: data.error || 'Invalid email or password' };
       }
 
       setToken(data.token);
       setUser(data.user);
-      localStorage.setItem('darulanwar_token', data.token);
+      try {
+        localStorage.setItem('darulanwar_token', data.token);
+      } catch (e) {
+        console.warn('LocalStorage save failed:', e);
+      }
       await fetchMyApplications();
 
       return { success: true };
@@ -121,13 +136,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (fullName: string, email: string, password: string, phone?: string, role?: string) => {
     try {
+      const cleanName = (fullName || '').trim();
+      const cleanEmail = (email || '').trim().toLowerCase();
+      const cleanPassword = (password || '').trim();
+      const cleanPhone = (phone || '').trim();
+
+      if (!cleanName || !cleanEmail || !cleanPassword) {
+        return { success: false, error: 'Full name, email, and password are required.' };
+      }
+
+      if (cleanPassword.length < 6) {
+        return { success: false, error: 'Password must be at least 6 characters long.' };
+      }
+
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fullName, email, password, phone, role: role || 'parent' })
+        body: JSON.stringify({ fullName: cleanName, email: cleanEmail, password: cleanPassword, phone: cleanPhone, role: role || 'parent' })
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({ error: 'Failed to parse server response' }));
 
       if (!res.ok) {
         return { success: false, error: data.error || 'Registration failed' };
@@ -135,7 +163,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setToken(data.token);
       setUser(data.user);
-      localStorage.setItem('darulanwar_token', data.token);
+      try {
+        localStorage.setItem('darulanwar_token', data.token);
+      } catch (e) {
+        console.warn('LocalStorage save failed:', e);
+      }
       await fetchMyApplications();
 
       return { success: true };
@@ -148,7 +180,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null);
     setUser(null);
     setMyApplications([]);
-    localStorage.removeItem('darulanwar_token');
+    try {
+      localStorage.removeItem('darulanwar_token');
+    } catch (e) {
+      console.warn('LocalStorage remove failed:', e);
+    }
   };
 
   return (

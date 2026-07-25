@@ -193,7 +193,7 @@ export const ApplicationModal: React.FC<ApplicationModalProps> = ({
             </div>
           ) : (
             /* Multi-step Form */
-            <form onSubmit={handleSubmit}>
+            <form noValidate onSubmit={handleSubmit}>
               
               {/* Step 1: Student Details */}
               {step === 1 && (
