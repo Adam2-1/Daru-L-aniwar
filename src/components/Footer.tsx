@@ -1,6 +1,7 @@
 import React from 'react';
 import { INSTITUTION_INFO, PRAYER_TIMES_DATA } from '../data/schoolData';
 import { BookOpen, MapPin, Phone, Mail, Clock, Facebook, Instagram, Youtube, Send, Sparkles, Heart, ShieldCheck, Lock } from 'lucide-react';
+import { DbStatusBadge } from './DbStatusBadge';
 
 interface FooterProps {
   onOpenApplyModal: () => void;
@@ -185,7 +186,8 @@ export const Footer: React.FC<FooterProps> = ({ onOpenApplyModal, onOpenAdminDas
         {/* Bottom Copyright & Credit */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
           <p>© {new Date().getFullYear()} {INSTITUTION_INFO.name}. All Rights Reserved.</p>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap justify-center sm:justify-end">
+            <DbStatusBadge variant="compact" />
             <button
               onClick={() => onOpenAdminDashboard && onOpenAdminDashboard('login')}
               className="text-[#D4AF37] hover:underline flex items-center gap-1 font-semibold"
@@ -193,8 +195,8 @@ export const Footer: React.FC<FooterProps> = ({ onOpenApplyModal, onOpenAdminDas
               <Lock className="w-3 h-3" />
               <span>Administrator Dashboard</span>
             </button>
-            <span className="text-slate-600">•</span>
-            <span>Crafted with honor for Islamic Educational Advancement</span>
+            <span className="text-slate-600 hidden sm:inline">•</span>
+            <span className="hidden sm:inline">Crafted for Islamic Educational Advancement</span>
           </div>
         </div>
 

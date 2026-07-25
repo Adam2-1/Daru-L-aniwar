@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { INSTITUTION_INFO, PROGRAMMES, FACILITIES, LATEST_NEWS } from '../data/schoolData';
 import { StoredApplication } from '../types';
 import { safeFetchJson } from '../lib/api';
+import { DbStatusBadge } from './DbStatusBadge';
 import {
   X,
   Lock,
@@ -502,10 +503,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2.5 py-0.5 rounded-full text-[11px] font-bold flex items-center gap-1">
-                <RefreshCw className="w-3 h-3 text-emerald-400" />
-                Live DB Sync
-              </span>
+              <DbStatusBadge variant="compact" />
             </div>
           </div>
         </div>

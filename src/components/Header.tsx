@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Phone, Mail, MapPin, Menu, X, ArrowRight, Sparkles, BookOpen, User, Database } from 'lucide-react';
 import { INSTITUTION_INFO } from '../data/schoolData';
 import { useAuth } from '../context/AuthContext';
+import { DbStatusBadge } from './DbStatusBadge';
 
 interface HeaderProps {
   onOpenApplyModal: (type?: 'Day School' | 'Boarding School') => void;
@@ -68,8 +69,9 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Right Arabic Calligraphy Bismillah */}
-          <div className="flex items-center gap-4">
+          {/* Right Arabic Calligraphy & DB Status Indicator */}
+          <div className="flex items-center gap-3">
+            <DbStatusBadge variant="compact" />
             <span className="font-serif text-[#D4AF37] font-semibold tracking-wider text-sm hidden sm:inline" dir="rtl">
               بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
             </span>

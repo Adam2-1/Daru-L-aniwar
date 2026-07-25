@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { X, Lock, Mail, User, Phone, LogIn, UserPlus, Database, CheckCircle2, AlertCircle } from 'lucide-react';
+import { DbStatusBadge } from './DbStatusBadge';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -121,6 +122,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultMo
         {/* Form Body */}
         <form noValidate onSubmit={handleSubmit} className="p-6 space-y-4">
           
+          <DbStatusBadge variant="banner" />
+
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 flex items-start gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 text-red-600 mt-0.5" />

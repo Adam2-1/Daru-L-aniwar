@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { INSTITUTION_INFO, PROGRAMMES } from '../data/schoolData';
 import { StoredApplication } from '../types';
 import { safeFetchJson } from '../lib/api';
+import { DbStatusBadge } from './DbStatusBadge';
 import {
   X,
   User,
@@ -290,6 +291,7 @@ export const ApplicantDashboardModal: React.FC<ApplicantDashboardModalProps> = (
                 <span className="text-xs font-bold text-[#D4AF37] uppercase tracking-widest">
                   Online Admission Portal
                 </span>
+                <DbStatusBadge variant="compact" className="ml-2" />
               </div>
               <h2 className="text-lg sm:text-2xl font-serif font-bold text-white tracking-tight">
                 Applicant Admission Dashboard

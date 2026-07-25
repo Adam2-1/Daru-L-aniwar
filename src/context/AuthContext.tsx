@@ -85,11 +85,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     checkDbStatus();
+    const dbInterval = setInterval(checkDbStatus, 30000);
     if (token) {
       fetchCurrentUser(token);
     } else {
       setIsLoading(false);
     }
+    return () => clearInterval(dbInterval);
   }, [token]);
 
   useEffect(() => {
