@@ -98,6 +98,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user, token]);
 
+  const parseResponse = async (res: Response, defaultErrMsg: string) => {
+    try {
+      const text = await res.text();
+      if (!text || !text.trim()) {
+        return { success: false, error: `${defaultErrMsg} (Empty response from server, HTTP ${res.status})` };
+      }
+      try {
+        const json = JSON.parse(text);
+        if (!res.ok) {
+          return { success: false, error: json.error || defaultErrMsg };
+        }
+        return { success: true, ...json };
+      } catch {
+        return { success: false, error: `${defaultErrMsg} (Server returned non-JSON error ${res.status}). Please try again.` };
+      }
+    } catch (e: any) {
+      return { success: false, error: e?.message || 'Network connection failed' };
+    }
+  };
+
   const login = async (email: string, password: string) => {
     try {
       const cleanEmail = (email || '').trim().toLowerCase();
@@ -113,16 +133,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         body: JSON.stringify({ email: cleanEmail, password: cleanPassword })
       });
 
-      const data = await res.json().catch(() => ({ error: 'Failed to parse response from server' }));
+      const parsed = await parseResponse(res, 'Invalid email or password');
 
-      if (!res.ok) {
-        return { success: false, error: data.error || 'Invalid email or password' };
+      if (!parsed.success) {
+        return { success: false, error: parsed.error };
       }
 
-      setToken(data.token);
-      setUser(data.user);
+      setToken(parsed.token);
+      setUser(parsed.user);
       try {
-        localStorage.setItem('darulanwar_token', data.token);
+        localStorage.setItem('darulanwar_token', parsed.token);
       } catch (e) {
         console.warn('LocalStorage save failed:', e);
       }
@@ -130,7 +150,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return { success: true };
     } catch (err: any) {
-      return { success: false, error: err.message || 'Server network error' };
+      return { success: false, error: err?.message || 'Server network error' };
     }
   };
 
@@ -155,16 +175,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         body: JSON.stringify({ fullName: cleanName, email: cleanEmail, password: cleanPassword, phone: cleanPhone, role: role || 'parent' })
       });
 
-      const data = await res.json().catch(() => ({ error: 'Failed to parse server response' }));
+      const parsed = await parseResponse(res, 'Registration failed');
 
-      if (!res.ok) {
-        return { success: false, error: data.error || 'Registration failed' };
+      if (!parsed.success) {
+        return { success: false, error: parsed.error };
       }
 
-      setToken(data.token);
-      setUser(data.user);
+      setToken(parsed.token);
+      setUser(parsed.user);
       try {
-        localStorage.setItem('darulanwar_token', data.token);
+        localStorage.setItem('darulanwar_token', parsed.token);
       } catch (e) {
         console.warn('LocalStorage save failed:', e);
       }
@@ -172,7 +192,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return { success: true };
     } catch (err: any) {
-      return { success: false, error: err.message || 'Server network error' };
+      return { success: false, error: err?.message || 'Server network error' };
     }
   };
 

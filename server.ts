@@ -404,7 +404,7 @@ async function startServer() {
   // 2. Auth: Register
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const { fullName, email, password, phone, role } = req.body;
+      const { fullName, email, password, phone, role } = req.body || {};
 
       if (!fullName || !email || !password) {
         return res.status(400).json({ error: "Name, email, and password are required" });
@@ -418,77 +418,81 @@ async function startServer() {
       const passwordHash = await bcrypt.hash(password, 10);
 
       if (isMongoConnected) {
-        const existingUser = await (UserModel as any).findOne({ email: normalizedEmail });
-        if (existingUser) {
-          return res.status(400).json({ error: "An account with this email already exists" });
-        }
+        try {
+          const existingUser = await (UserModel as any).findOne({ email: normalizedEmail });
+          if (existingUser) {
+            return res.status(400).json({ error: "An account with this email already exists" });
+          }
 
-        const newUser = await UserModel.create({
-          fullName,
-          email: normalizedEmail,
-          passwordHash,
-          phone,
-          role: role || 'applicant',
-        });
+          const newUser = await UserModel.create({
+            fullName,
+            email: normalizedEmail,
+            passwordHash,
+            phone,
+            role: role || 'applicant',
+          });
 
-        const token = generateToken({
-          id: newUser._id.toString(),
-          email: newUser.email,
-          fullName: newUser.fullName,
-          role: newUser.role,
-        });
-
-        return res.status(201).json({
-          token,
-          user: {
+          const token = generateToken({
             id: newUser._id.toString(),
-            fullName: newUser.fullName,
             email: newUser.email,
-            phone: newUser.phone,
+            fullName: newUser.fullName,
             role: newUser.role,
-            createdAt: newUser.createdAt,
-          },
-        });
-      } else {
-        // In-Memory Fallback
-        const existingUser = inMemoryUsers.find(u => u.email === normalizedEmail);
-        if (existingUser) {
-          return res.status(400).json({ error: "An account with this email already exists" });
+          });
+
+          return res.status(201).json({
+            token,
+            user: {
+              id: newUser._id.toString(),
+              fullName: newUser.fullName,
+              email: newUser.email,
+              phone: newUser.phone,
+              role: newUser.role,
+              createdAt: newUser.createdAt,
+            },
+          });
+        } catch (dbErr) {
+          console.warn("MongoDB Register error, falling back to memory:", dbErr);
         }
-
-        const id = "mem_usr_" + Date.now() + "_" + Math.random().toString(36).substr(2, 4);
-        const newUser = {
-          id,
-          _id: id,
-          fullName,
-          email: normalizedEmail,
-          passwordHash,
-          phone,
-          role: role || 'applicant',
-          createdAt: new Date(),
-        };
-
-        inMemoryUsers.push(newUser);
-
-        const token = generateToken({
-          id: newUser.id,
-          email: newUser.email,
-          fullName: newUser.fullName,
-          role: newUser.role,
-        });
-
-        return res.status(201).json({
-          token,
-          user: {
-            id: newUser.id,
-            fullName: newUser.fullName,
-            email: newUser.email,
-            phone: newUser.phone,
-            role: newUser.role,
-            createdAt: newUser.createdAt,
-          },
-        });
       }
+
+      // In-Memory Fallback
+      const existingUser = inMemoryUsers.find(u => u.email === normalizedEmail);
+      if (existingUser) {
+        return res.status(400).json({ error: "An account with this email already exists" });
+      }
+
+      const id = "mem_usr_" + Date.now() + "_" + Math.random().toString(36).substr(2, 4);
+      const newUser = {
+        id,
+        _id: id,
+        fullName,
+        email: normalizedEmail,
+        passwordHash,
+        phone,
+        role: role || 'applicant',
+        createdAt: new Date(),
+      };
+
+      inMemoryUsers.push(newUser);
+
+      const token = generateToken({
+        id: newUser.id,
+        email: newUser.email,
+        fullName: newUser.fullName,
+        role: newUser.role,
+      });
+
+      return res.status(201).json({
+        token,
+        user: {
+          id: newUser.id,
+          fullName: newUser.fullName,
+          email: newUser.email,
+          phone: newUser.phone,
+          role: newUser.role,
+          createdAt: newUser.createdAt,
+        },
+      });
     } catch (error: any) {
       console.error("Register Error:", error);
       res.status(500).json({ error: error.message || "Failed to register user" });
@@ -498,7 +502,7 @@ async function startServer() {
   // 3. Auth: Login
   app.post("/api/auth/login", async (req, res) => {
     try {
-      const { email, password } = req.body;
+      const { email, password } = req.body || {};
 
       if (!email || !password) {
         return res.status(400).json({ error: "Email and password are required" });
@@ -507,65 +511,67 @@ async function startServer() {
       const normalizedEmail = email.toLowerCase().trim();
 
       if (isMongoConnected) {
-        const user = await (UserModel as any).findOne({ email: normalizedEmail });
-        if (!user) {
-          return res.status(401).json({ error: "Invalid email or password" });
+        try {
+          const user = await (UserModel as any).findOne({ email: normalizedEmail });
+          if (user) {
+            const isMatch = await bcrypt.compare(password, user.passwordHash);
+            if (isMatch) {
+              const token = generateToken({
+                id: user._id.toString(),
+                email: user.email,
+                fullName: user.fullName,
+                role: user.role,
+              });
+
+              return res.json({
+                token,
+                user: {
+                  id: user._id.toString(),
+                  fullName: user.fullName,
+                  email: user.email,
+                  phone: user.phone,
+                  role: user.role,
+                  createdAt: user.createdAt,
+                },
+              });
+            } else {
+              return res.status(401).json({ error: "Invalid email or password" });
+            }
+          }
+        } catch (dbErr) {
+          console.warn("MongoDB Login error, falling back to memory:", dbErr);
         }
-
-        const isMatch = await bcrypt.compare(password, user.passwordHash);
-        if (!isMatch) {
-          return res.status(401).json({ error: "Invalid email or password" });
-        }
-
-        const token = generateToken({
-          id: user._id.toString(),
-          email: user.email,
-          fullName: user.fullName,
-          role: user.role,
-        });
-
-        return res.json({
-          token,
-          user: {
-            id: user._id.toString(),
-            fullName: user.fullName,
-            email: user.email,
-            phone: user.phone,
-            role: user.role,
-            createdAt: user.createdAt,
-          },
-        });
-      } else {
-        // In-Memory Fallback
-        const user = inMemoryUsers.find(u => u.email === normalizedEmail);
-        if (!user) {
-          return res.status(401).json({ error: "Invalid email or password" });
-        }
-
-        const isMatch = await bcrypt.compare(password, user.passwordHash);
-        if (!isMatch) {
-          return res.status(401).json({ error: "Invalid email or password" });
-        }
-
-        const token = generateToken({
-          id: user.id,
-          email: user.email,
-          fullName: user.fullName,
-          role: user.role,
-        });
-
-        return res.json({
-          token,
-          user: {
-            id: user.id,
-            fullName: user.fullName,
-            email: user.email,
-            phone: user.phone,
-            role: user.role,
-            createdAt: user.createdAt,
-          },
-        });
       }
+
+      // In-Memory Fallback
+      const user = inMemoryUsers.find(u => u.email === normalizedEmail);
+      if (!user) {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+
+      const isMatch = await bcrypt.compare(password, user.passwordHash);
+      if (!isMatch) {
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+
+      const token = generateToken({
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+      });
+
+      return res.json({
+        token,
+        user: {
+          id: user.id,
+          fullName: user.fullName,
+          email: user.email,
+          phone: user.phone,
+          role: user.role,
+          createdAt: user.createdAt,
+        },
+      });
     } catch (error: any) {
       console.error("Login Error:", error);
       res.status(500).json({ error: error.message || "Failed to log in" });
