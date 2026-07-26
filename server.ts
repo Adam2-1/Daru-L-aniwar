@@ -248,27 +248,51 @@ mongoose.connection.on('disconnected', () => {
 });
 
 // Initialize MongoDB Connection & Collections
-async function connectToMongo() {
-  if (!MONGODB_URI) {
-    console.warn("⚠️ MONGODB_URI environment variable is not configured.");
-    mongoErrorMessage = "MONGODB_URI environment variable is not set in environment settings.";
-    return;
+async function ensureMongoConnected() {
+  const currentState = mongoose.connection.readyState as number;
+  if (currentState === 1) {
+    isMongoConnected = true;
+    mongoErrorMessage = "";
+    return true;
+  }
+
+  if (currentState === 2) {
+    let attempts = 0;
+    while ((mongoose.connection.readyState as number) === 2 && attempts < 25) {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      attempts++;
+    }
+    if ((mongoose.connection.readyState as number) === 1) {
+      isMongoConnected = true;
+      mongoErrorMessage = "";
+      return true;
+    }
+  }
+
+  const mongodbUri = process.env.MONGODB_URI || MONGODB_URI;
+  if (!mongodbUri) {
+    isMongoConnected = false;
+    mongoErrorMessage = "MONGODB_URI environment variable is not configured in Vercel/environment settings.";
+    return false;
   }
 
   try {
     mongoose.set('strictQuery', false);
-    await mongoose.connect(MONGODB_URI, {
+    await mongoose.connect(mongodbUri, {
       dbName: 'darulanwar_db',
       serverSelectionTimeoutMS: 8000,
     });
     isMongoConnected = true;
+    mongoErrorMessage = "";
     console.log("✅ Successfully connected to MongoDB Database: darulanwar_db!");
 
     await initializeDatabase();
+    return true;
   } catch (err: any) {
     isMongoConnected = false;
     mongoErrorMessage = err?.message || "Failed to connect to MongoDB instance.";
     console.error("❌ MongoDB connection failed:", mongoErrorMessage);
+    return false;
   }
 }
 
@@ -327,7 +351,8 @@ async function initializeDatabase() {
   }
 }
 
-connectToMongo();
+// Trigger connection attempt on startup
+ensureMongoConnected();
 
 // JWT Helper
 function generateToken(user: { id: string; email: string; fullName: string; role: string }) {
@@ -382,8 +407,9 @@ function optionalAuthToken(req: AuthRequest, res: Response, next: NextFunction) 
 }
 
 // Require Active MongoDB Connection Middleware
-function requireMongoDb(req: Request, res: Response, next: NextFunction) {
-  if (!isMongoConnected) {
+async function requireMongoDb(req: Request, res: Response, next: NextFunction) {
+  const isOk = await ensureMongoConnected();
+  if (!isOk) {
     return res.status(503).json({
       success: false,
       message: "Database unavailable",
@@ -393,57 +419,57 @@ function requireMongoDb(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-async function startServer() {
-  const app = express();
+export const app = express();
 
-  // Enable CORS & Preflight OPTIONS
-  app.use(cors({
-    origin: true,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
-  }));
-  app.options('*', cors());
-  app.options(/(.*)/, cors());
+// Enable CORS & Preflight OPTIONS
+app.use(cors({
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
+}));
+app.options('*', cors());
+app.options(/(.*)/, cors());
 
-  app.use(express.json({ limit: '15mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '15mb' }));
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
-  // 1. Database Status Endpoint
-  app.get(["/api/db-status", "/api/db-status/"], async (req, res) => {
-    let stats = null;
-    if (isMongoConnected) {
-      try {
-        const usersCount = await (UserModel as any).countDocuments();
-        const appsCount = await (ApplicationModel as any).countDocuments();
-        const contactsCount = await (ContactModel as any).countDocuments();
-        const newsCount = await (NewsArticleModel as any).countDocuments();
-        const galleryCount = await (GalleryItemModel as any).countDocuments();
-        stats = {
-          databaseName: 'darulanwar_db',
-          collections: {
-            users: usersCount,
-            applications: appsCount,
-            contacts: contactsCount,
-            news: newsCount,
-            gallery: galleryCount,
-          }
-        };
-      } catch (err: any) {
-        console.error("Error fetching MongoDB stats:", err);
-      }
+// 1. Database Status Endpoint
+app.get(["/api/db-status", "/api/db-status/"], async (req, res) => {
+  await ensureMongoConnected();
+  let stats = null;
+  if (isMongoConnected) {
+    try {
+      const usersCount = await (UserModel as any).countDocuments();
+      const appsCount = await (ApplicationModel as any).countDocuments();
+      const contactsCount = await (ContactModel as any).countDocuments();
+      const newsCount = await (NewsArticleModel as any).countDocuments();
+      const galleryCount = await (GalleryItemModel as any).countDocuments();
+      stats = {
+        databaseName: 'darulanwar_db',
+        collections: {
+          users: usersCount,
+          applications: appsCount,
+          contacts: contactsCount,
+          news: newsCount,
+          gallery: galleryCount,
+        }
+      };
+    } catch (err: any) {
+      console.error("Error fetching MongoDB stats:", err);
     }
+  }
 
-    res.json({
-      connected: isMongoConnected,
-      type: isMongoConnected ? "mongodb" : "offline",
-      message: isMongoConnected
-        ? "Connected to MongoDB Cluster ('darulanwar_db')"
-        : (mongoErrorMessage || "MongoDB database is offline"),
-      stats,
-      mongoErrorMessage: isMongoConnected ? null : mongoErrorMessage
-    });
+  res.json({
+    connected: isMongoConnected,
+    type: isMongoConnected ? "mongodb" : "offline",
+    message: isMongoConnected
+      ? "Connected to MongoDB Cluster ('darulanwar_db')"
+      : (mongoErrorMessage || "MongoDB database is offline"),
+    stats,
+    mongoErrorMessage: isMongoConnected ? null : mongoErrorMessage
   });
+});
 
   // 2. Auth: Register
   app.options(["/api/auth/register", "/api/auth/register/"], cors());
@@ -927,23 +953,30 @@ async function startServer() {
     });
   });
 
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
+  async function startServer() {
+    if (process.env.NODE_ENV !== "production") {
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
+    } else {
+      const distPath = path.join(process.cwd(), 'dist');
+      app.use(express.static(distPath));
+      app.get('*', (req, res) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+    }
+
+    if (!process.env.VERCEL) {
+      app.listen(PORT, "0.0.0.0", () => {
+        console.log(`🚀 DARU L AN'WAR Express & Vite server running on http://0.0.0.0:${PORT}`);
+      });
+    }
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`🚀 DARU L AN'WAR Express & Vite server running on http://0.0.0.0:${PORT}`);
-  });
-}
+  startServer();
 
-startServer();
+  export default app;
+
+
