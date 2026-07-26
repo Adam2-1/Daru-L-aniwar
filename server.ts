@@ -1,6 +1,5 @@
 import express, { Request, Response, NextFunction } from "express";
 import path from "path";
-import { createServer as createViteServer } from "vite";
 import mongoose, { Schema, Document } from "mongoose";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
@@ -954,21 +953,22 @@ app.get(["/api/db-status", "/api/db-status/"], async (req, res) => {
   });
 
   async function startServer() {
-    if (process.env.NODE_ENV !== "production") {
-      const vite = await createViteServer({
-        server: { middlewareMode: true },
-        appType: "spa",
-      });
-      app.use(vite.middlewares);
-    } else {
-      const distPath = path.join(process.cwd(), 'dist');
-      app.use(express.static(distPath));
-      app.get('*', (req, res) => {
-        res.sendFile(path.join(distPath, 'index.html'));
-      });
-    }
-
     if (!process.env.VERCEL) {
+      if (process.env.NODE_ENV !== "production") {
+        const { createServer: createViteServer } = await import("vite");
+        const vite = await createViteServer({
+          server: { middlewareMode: true },
+          appType: "spa",
+        });
+        app.use(vite.middlewares);
+      } else {
+        const distPath = path.join(process.cwd(), 'dist');
+        app.use(express.static(distPath));
+        app.get('*', (req, res) => {
+          res.sendFile(path.join(distPath, 'index.html'));
+        });
+      }
+
       app.listen(PORT, "0.0.0.0", () => {
         console.log(`🚀 DARU L AN'WAR Express & Vite server running on http://0.0.0.0:${PORT}`);
       });
